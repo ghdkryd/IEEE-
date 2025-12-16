@@ -4,7 +4,7 @@ export interface Slide {
   title: string;
   content: string;
   bulletPoints: string[];
-  layout: 'title' | 'bullet' | 'split' | 'quote';
+  layout: 'title' | 'bullet' | 'split' | 'quote' | 'image-center';
   imagePrompt: string; // Required now for AI image generation
 }
 

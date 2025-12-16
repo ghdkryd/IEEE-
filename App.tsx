@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { HashRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Menu, X, Moon, Sun, Download, ChevronRight, ChevronLeft, Upload, Play, Copy, RefreshCw, Palette, Image as ImageIcon, Layout as LayoutIcon } from 'lucide-react';
+import { Menu, X, Moon, Sun, Download, ChevronRight, ChevronLeft, Upload, Play, Copy, RefreshCw, Palette, Image as ImageIcon, Layout as LayoutIcon, Sparkles, FileText, Zap } from 'lucide-react';
 import { NAV_ITEMS, MISSION } from './constants';
 import { ChatAssistant } from './components/ChatAssistant';
 import { generateSlides } from './services/geminiService';
@@ -30,39 +30,39 @@ const THEMES: Record<Theme, {
   cyber: {
     name: 'Cyberpunk',
     bg: 'bg-zinc-950',
-    text: 'text-green-400',
+    text: 'text-cyan-400',
     accent: 'bg-purple-600',
-    border: 'border-green-500',
+    border: 'border-cyan-500',
     font: 'font-mono',
-    shadow: 'shadow-[4px_4px_0_0_#a855f7]',
-    previewClass: 'bg-black border-2 border-green-500'
+    shadow: 'shadow-[0px_0px_15px_rgba(34,211,238,0.5)]',
+    previewClass: 'bg-black border-2 border-cyan-500 shadow-[0_0_30px_rgba(6,182,212,0.15)]'
   },
   corporate: {
     name: 'Professional',
     bg: 'bg-slate-50',
     text: 'text-slate-800',
-    accent: 'bg-blue-600',
-    border: 'border-slate-300',
+    accent: 'bg-blue-700',
+    border: 'border-slate-200',
     font: 'font-sans',
-    shadow: 'shadow-lg',
-    previewClass: 'bg-white border border-slate-200'
+    shadow: 'shadow-xl',
+    previewClass: 'bg-gradient-to-br from-white to-slate-50 border border-slate-200 shadow-2xl'
   },
   minimal: {
-    name: 'Minimalist',
-    bg: 'bg-white',
-    text: 'text-zinc-800',
-    accent: 'bg-zinc-900',
+    name: 'Editorial',
+    bg: 'bg-stone-50',
+    text: 'text-stone-900',
+    accent: 'bg-stone-800',
     border: 'border-transparent',
     font: 'font-serif',
     shadow: 'shadow-sm',
-    previewClass: 'bg-zinc-50'
+    previewClass: 'bg-white shadow-lg'
   }
 };
 
 // --- Helper for Images ---
 const getAIImageUrl = (prompt: string, seed: number) => {
-  const encodedPrompt = encodeURIComponent(prompt + " high quality, stylistic, 4k");
-  // Using Pollinations.ai for real-time generation without auth
+  const encodedPrompt = encodeURIComponent(prompt + " cinematic lighting, highly detailed, 8k, professional photography");
+  // Using Pollinations.ai for real-time generation
   return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1280&height=720&nologo=true&seed=${seed}`;
 };
 
@@ -155,170 +155,163 @@ const Footer: React.FC = () => (
   </footer>
 );
 
-// --- Generator Component ---
-const SlidePreview: React.FC<{ slides: Slide[]; theme: Theme }> = ({ slides, theme }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
+// --- New Vertical Slide Preview Component ---
+const SlideListPreview: React.FC<{ slides: Slide[]; theme: Theme }> = ({ slides, theme }) => {
   const themeConfig = THEMES[theme];
 
-  const nextSlide = () => setCurrentIndex(prev => (prev + 1) % slides.length);
-  const prevSlide = () => setCurrentIndex(prev => (prev - 1 + slides.length) % slides.length);
-
-  const currentSlide = slides[currentIndex];
-
   const handleDownload = () => {
-    alert("Downloading feature would generate a PPTX file here.");
+    alert("This would trigger a PDF/PPTX download in a production app.");
   };
-
-  if (!currentSlide) return null;
 
   // Dynamic Styles based on theme
   const getSlideStyles = () => {
     switch (theme) {
-      case 'cyber':
-        return 'bg-black text-green-400 font-mono';
-      case 'corporate':
-        return 'bg-white text-slate-800 font-sans';
-      case 'minimal':
-        return 'bg-zinc-50 text-zinc-900 font-serif';
-      default: // neo
-        return 'bg-white text-black font-sans';
+      case 'cyber': return 'text-cyan-400 font-mono tracking-wide selection:bg-cyan-900';
+      case 'corporate': return 'text-slate-800 font-sans tracking-normal selection:bg-blue-100';
+      case 'minimal': return 'text-stone-900 font-serif tracking-tight selection:bg-stone-200';
+      default: return 'text-black font-sans tracking-tight selection:bg-neo-pink';
     }
   };
 
   const getAccentColor = () => {
      switch (theme) {
-       case 'cyber': return 'text-purple-400 border-purple-500';
-       case 'corporate': return 'text-blue-600 border-blue-600';
-       case 'minimal': return 'text-black border-black';
-       default: return 'text-neo-pink border-black';
+       case 'cyber': return 'text-purple-400 border-purple-500 bg-purple-900/20';
+       case 'corporate': return 'text-blue-700 border-blue-700 bg-blue-50';
+       case 'minimal': return 'text-stone-500 border-stone-300 bg-stone-100';
+       default: return 'text-neo-pink border-black bg-neo-yellow';
      }
   };
 
   return (
-    <div className={`p-4 md:p-8 h-full flex flex-col transition-colors duration-500 ${theme === 'neo' ? 'bg-slate-100 border-4 border-black shadow-neo-lg' : theme === 'cyber' ? 'bg-zinc-900 border-2 border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.3)]' : 'bg-gray-100 shadow-xl'}`}>
+    <div className={`w-full min-h-screen p-4 md:p-8 flex flex-col items-center gap-12 transition-colors duration-500 ${theme === 'cyber' ? 'bg-zinc-950' : 'bg-slate-100'}`}>
       
-      {/* Controls Header */}
-      <div className="flex justify-between items-center mb-4">
-        <div className={`font-bold text-sm uppercase ${theme === 'cyber' ? 'text-green-600' : 'text-slate-500'}`}>
-          Slide {currentIndex + 1} / {slides.length}
+      {/* Header Actions */}
+      <div className="w-full max-w-5xl flex justify-between items-center bg-white dark:bg-slate-800 p-4 border-2 border-black dark:border-white shadow-neo-sm dark:shadow-neo-white-sm sticky top-24 z-30 mb-4">
+        <div className="font-bold text-lg uppercase flex items-center gap-2">
+           <FileText size={20} /> Generated Deck ({slides.length} Slides)
         </div>
-        <button onClick={handleDownload} className={`flex items-center gap-2 px-3 py-1 text-xs font-bold uppercase transition-all ${theme === 'neo' ? 'bg-neo-green text-black border-2 border-black shadow-neo-sm hover:shadow-none' : 'bg-blue-600 text-white rounded hover:bg-blue-700'}`}>
-          <Download size={14} /> Export
+        <button onClick={handleDownload} className="flex items-center gap-2 px-6 py-2 bg-black text-white font-bold uppercase hover:bg-neo-pink hover:text-black transition-colors">
+          <Download size={16} /> Export PDF
         </button>
       </div>
 
-      {/* Slide Viewport (16:9 Aspect Ratio) */}
-      <div className={`flex-grow aspect-video relative overflow-hidden flex flex-col transition-all duration-300 ${themeConfig.previewClass} ${getSlideStyles()}`}>
-        
-        {/* Theme Specific Background Decorations */}
-        {theme === 'neo' && <div className="absolute top-0 left-0 w-full h-4 bg-neo-pink border-b-4 border-black z-10"></div>}
-        {theme === 'cyber' && <div className="absolute top-0 left-0 w-full h-full bg-[linear-gradient(rgba(18,18,18,0)_2px,transparent_2px),linear-gradient(90deg,rgba(18,18,18,0)_2px,transparent_2px)] bg-[size:40px_40px] [background-position:center] opacity-20 pointer-events-none"></div>}
-        {theme === 'corporate' && <div className="absolute bottom-0 right-0 w-1/3 h-full bg-blue-50 -skew-x-12 opacity-50"></div>}
-
-        {/* Content Container */}
-        <div className="relative z-20 h-full flex p-8 md:p-16">
-          
-          {/* --- LAYOUTS --- */}
-          
-          {currentSlide.layout === 'title' ? (
-            <div className="w-full flex flex-col justify-center items-center text-center relative">
-               {/* Background Image for Title */}
-               <div className="absolute inset-0 z-0 opacity-20">
-                  <img 
-                    src={getAIImageUrl(currentSlide.imagePrompt || currentSlide.title, currentIndex)} 
-                    alt="Background" 
-                    className="w-full h-full object-cover grayscale mix-blend-multiply"
-                  />
-               </div>
-               <div className="relative z-10">
-                 <h1 className={`text-5xl md:text-7xl font-black mb-6 uppercase tracking-tighter leading-none ${getAccentColor().split(' ')[0]}`}>{currentSlide.title}</h1>
-                 <p className="text-xl md:text-2xl font-bold opacity-80 max-w-2xl mx-auto">{currentSlide.content}</p>
-               </div>
-            </div>
-
-          ) : currentSlide.layout === 'split' ? (
-            <div className="flex w-full h-full gap-8 items-center">
-              <div className="w-1/2 h-full relative">
-                 <div className={`absolute inset-0 ${theme === 'neo' ? 'border-4 border-black shadow-neo-sm' : 'rounded-lg overflow-hidden shadow-lg'}`}>
-                    <img 
-                      src={getAIImageUrl(currentSlide.imagePrompt || currentSlide.title, currentIndex)} 
-                      alt="Slide Visual" 
-                      className="w-full h-full object-cover"
-                    />
-                 </div>
-              </div>
-              <div className="w-1/2 flex flex-col justify-center">
-                <h2 className={`text-3xl font-black mb-6 uppercase ${theme === 'neo' ? 'bg-neo-yellow inline-block px-2' : ''}`}>{currentSlide.title}</h2>
-                <p className="text-lg font-medium mb-6 opacity-90">{currentSlide.content}</p>
-                <ul className="space-y-3">
-                  {currentSlide.bulletPoints.map((point, i) => (
-                    <li key={i} className="flex items-start gap-3">
-                      <div className={`w-2 h-2 mt-2 flex-shrink-0 ${theme === 'cyber' ? 'bg-green-500 shadow-[0_0_5px_#22c55e]' : 'bg-current'}`}></div>
-                      <span className="font-bold opacity-80">{point}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
-          ) : currentSlide.layout === 'quote' ? (
-             <div className="flex w-full h-full items-center justify-center relative">
-                <div className="absolute right-0 top-0 w-64 h-64 opacity-20">
-                   <img 
-                      src={getAIImageUrl(currentSlide.imagePrompt || "abstract", currentIndex)} 
-                      className="w-full h-full object-cover rounded-full"
-                    />
-                </div>
-                <div className="z-10 max-w-4xl text-center">
-                  <h2 className="text-xl font-bold opacity-50 mb-8 uppercase tracking-widest">{currentSlide.title}</h2>
-                  <blockquote className={`text-4xl md:text-5xl font-black italic leading-tight ${theme === 'neo' ? 'border-l-8 border-black pl-8' : ''}`}>
-                    "{currentSlide.content}"
-                  </blockquote>
-                </div>
+      {/* Vertical Slide List */}
+      <div className="w-full max-w-5xl space-y-16 pb-20">
+        {slides.map((slide, index) => (
+          <div key={index} className="flex flex-col gap-4">
+             {/* Slide Number Label */}
+             <div className={`self-start px-3 py-1 text-xs font-bold uppercase tracking-widest border border-current opacity-70 ${theme === 'cyber' ? 'text-cyan-500' : 'text-black'}`}>
+                Slide {index + 1}
              </div>
 
-          ) : (
-            // Bullet Layout
-            <div className="w-full flex flex-col h-full">
-              <div className={`flex items-end justify-between border-b-4 pb-4 mb-8 ${getAccentColor().split(' ')[1]}`}>
-                <h2 className="text-4xl font-black uppercase max-w-2xl">{currentSlide.title}</h2>
-                <div className="w-24 h-24 hidden md:block opacity-80">
-                   <img 
-                      src={getAIImageUrl(currentSlide.imagePrompt || "icon", currentIndex)} 
-                      className="w-full h-full object-cover rounded-md"
-                   />
-                </div>
-              </div>
-              <p className="text-xl font-medium mb-8 opacity-90">{currentSlide.content}</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {currentSlide.bulletPoints.map((point, i) => (
-                  <div key={i} className={`p-4 ${theme === 'neo' ? 'border-2 border-black shadow-neo-sm bg-white' : theme === 'cyber' ? 'border border-green-900 bg-black/50' : 'bg-slate-50 rounded shadow-sm'}`}>
-                    <span className="font-bold opacity-85">{point}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+             {/* The Slide Card */}
+             <div className={`relative w-full aspect-video overflow-hidden transition-all duration-300 group ${themeConfig.previewClass} ${getSlideStyles()}`}>
+                
+                {/* --- THEME DECORATIONS --- */}
+                {theme === 'neo' && (
+                  <>
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-neo-yellow border-l-4 border-b-4 border-black z-0"></div>
+                    <div className="absolute bottom-0 left-0 w-full h-4 bg-black z-0"></div>
+                  </>
+                )}
+                {theme === 'cyber' && (
+                  <div className="absolute inset-0 bg-[linear-gradient(rgba(6,182,212,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(6,182,212,0.1)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none"></div>
+                )}
+                {theme === 'corporate' && (
+                  <div className="absolute top-0 left-0 w-2 h-full bg-blue-700"></div>
+                )}
 
-      {/* Navigation */}
-      <div className="flex justify-between items-center mt-4">
-         <button onClick={prevSlide} className={`p-2 rounded-full transition-all ${theme === 'cyber' ? 'hover:bg-green-900 text-green-500' : 'hover:bg-slate-200'}`} disabled={currentIndex === 0}>
-           <ChevronLeft size={28} />
-         </button>
-         <div className="flex gap-2">
-           {slides.map((_, idx) => (
-             <button 
-               key={idx} 
-               onClick={() => setCurrentIndex(idx)}
-               className={`w-2 h-2 transition-all rounded-full ${idx === currentIndex ? (theme === 'cyber' ? 'bg-green-500 w-4' : 'bg-black w-4') : 'bg-slate-300'}`}
-             />
-           ))}
-         </div>
-         <button onClick={nextSlide} className={`p-2 rounded-full transition-all ${theme === 'cyber' ? 'hover:bg-green-900 text-green-500' : 'hover:bg-slate-200'}`} disabled={currentIndex === slides.length - 1}>
-           <ChevronRight size={28} />
-         </button>
+                {/* --- CONTENT CONTAINER --- */}
+                <div className="relative z-10 w-full h-full p-8 md:p-16 flex flex-col justify-center">
+                  
+                  {/* LAYOUT: TITLE SLIDE */}
+                  {slide.layout === 'title' && (
+                    <div className="flex flex-col items-center justify-center text-center h-full relative">
+                        <div className="absolute inset-0 opacity-10 mix-blend-multiply dark:mix-blend-overlay">
+                           <img src={getAIImageUrl(slide.imagePrompt || slide.title, index)} className="w-full h-full object-cover" />
+                        </div>
+                        <h1 className={`text-5xl md:text-7xl font-black mb-6 uppercase leading-none z-10 ${theme === 'cyber' ? 'drop-shadow-[0_0_10px_rgba(34,211,238,0.8)]' : ''}`}>
+                          {slide.title}
+                        </h1>
+                        <div className={`h-1 w-24 mb-6 ${theme === 'cyber' ? 'bg-purple-500 shadow-[0_0_10px_#a855f7]' : theme === 'neo' ? 'bg-black' : 'bg-current'}`}></div>
+                        <p className="text-xl md:text-2xl font-bold opacity-80 max-w-3xl">{slide.content}</p>
+                    </div>
+                  )}
+
+                  {/* LAYOUT: SPLIT */}
+                  {slide.layout === 'split' && (
+                    <div className="flex flex-col md:flex-row h-full gap-8 items-center">
+                       <div className="w-full md:w-1/2 h-64 md:h-full relative overflow-hidden group-hover:scale-[1.02] transition-transform duration-500">
+                          <img 
+                            src={getAIImageUrl(slide.imagePrompt || slide.title, index)} 
+                            className={`w-full h-full object-cover ${theme === 'neo' ? 'border-4 border-black shadow-neo-sm' : theme === 'cyber' ? 'border border-cyan-500 opacity-80' : 'rounded-lg shadow-md'}`} 
+                          />
+                       </div>
+                       <div className="w-full md:w-1/2">
+                          <h2 className={`text-4xl font-black mb-6 uppercase leading-tight ${theme === 'neo' ? 'bg-neo-pink inline-block px-2 transform -rotate-1' : 'text-current'}`}>
+                            {slide.title}
+                          </h2>
+                          <p className="text-lg font-medium mb-6 opacity-90 leading-relaxed">{slide.content}</p>
+                          <ul className="space-y-3">
+                             {slide.bulletPoints.map((bp, i) => (
+                               <li key={i} className="flex items-start gap-3">
+                                  <div className={`mt-1.5 w-2 h-2 flex-shrink-0 ${theme === 'cyber' ? 'bg-purple-500 shadow-[0_0_5px_#a855f7]' : 'bg-current'}`}></div>
+                                  <span className="font-bold opacity-80">{bp}</span>
+                               </li>
+                             ))}
+                          </ul>
+                       </div>
+                    </div>
+                  )}
+
+                  {/* LAYOUT: BULLET / DEFAULT */}
+                  {(slide.layout === 'bullet' || slide.layout === 'image-center') && (
+                     <div className="h-full flex flex-col">
+                        <div className="flex justify-between items-end border-b-2 border-current/20 pb-6 mb-8">
+                           <h2 className="text-4xl md:text-5xl font-black uppercase max-w-3xl leading-none">{slide.title}</h2>
+                           <span className="text-sm font-bold opacity-50 hidden md:block">{themeConfig.name} Design</span>
+                        </div>
+                        <div className="flex-grow grid md:grid-cols-2 gap-8 items-center">
+                           <div>
+                              <p className="text-xl font-medium mb-8 opacity-90 leading-relaxed">{slide.content}</p>
+                              <div className="space-y-4">
+                                {slide.bulletPoints.map((bp, i) => (
+                                  <div key={i} className={`p-4 ${theme === 'neo' ? 'bg-white border-2 border-black shadow-neo-sm' : theme === 'cyber' ? 'bg-zinc-900 border border-zinc-700' : 'bg-slate-50 border-l-4 border-slate-300'}`}>
+                                     <p className="font-bold">{bp}</p>
+                                  </div>
+                                ))}
+                              </div>
+                           </div>
+                           <div className="h-64 md:h-full relative overflow-hidden">
+                              <img 
+                                src={getAIImageUrl(slide.imagePrompt || slide.title, index)} 
+                                className={`w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700 ${theme === 'neo' ? 'border-4 border-black' : theme === 'corporate' ? 'rounded-lg' : ''}`}
+                              />
+                           </div>
+                        </div>
+                     </div>
+                  )}
+
+                   {/* LAYOUT: QUOTE */}
+                   {slide.layout === 'quote' && (
+                     <div className="h-full flex flex-col justify-center items-center relative text-center">
+                        <div className="absolute inset-0 z-0 opacity-10">
+                           <img src={getAIImageUrl("abstract texture " + theme, index)} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="relative z-10 max-w-4xl">
+                           <div className="mb-8 text-6xl opacity-20">"</div>
+                           <h2 className={`text-4xl md:text-6xl font-black italic leading-tight mb-8 ${theme === 'cyber' ? 'text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500' : ''}`}>
+                             {slide.content}
+                           </h2>
+                           <div className={`h-1 w-32 mx-auto mb-4 ${theme === 'neo' ? 'bg-black' : 'bg-current opacity-30'}`}></div>
+                           <p className="text-xl font-bold uppercase tracking-widest opacity-60">{slide.title}</p>
+                        </div>
+                     </div>
+                   )}
+                </div>
+             </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -327,9 +320,9 @@ const SlidePreview: React.FC<{ slides: Slide[]; theme: Theme }> = ({ slides, the
 const Generator: React.FC = () => {
   const [inputText, setInputText] = useState('');
   const [selectedTheme, setSelectedTheme] = useState<Theme>('neo');
+  const [generationMode, setGenerationMode] = useState<'strict' | 'creative'>('strict');
   const [isGenerating, setIsGenerating] = useState(false);
   const [slides, setSlides] = useState<Slide[] | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleGenerate = async () => {
     if (!inputText.trim()) return;
@@ -339,7 +332,7 @@ const Generator: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     try {
-      const generatedSlides = await generateSlides(inputText);
+      const generatedSlides = await generateSlides(inputText, generationMode);
       setSlides(generatedSlides);
     } catch (e) {
       alert("Failed to generate slides. Please try again.");
@@ -365,83 +358,123 @@ const Generator: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 md:py-16">
-      <div className="grid lg:grid-cols-12 gap-12">
-        {/* Input Section (4 Columns) */}
-        <div className="lg:col-span-4 space-y-6">
-          <div className="bg-white dark:bg-slate-800 p-6 border-4 border-black dark:border-white shadow-neo dark:shadow-neo-white">
-            <h2 className="text-3xl font-black mb-6 uppercase flex items-center gap-2">
-               <Palette size={24} /> Style
-            </h2>
+    <div className="w-full">
+      {/* If slides exist, show the previewer full width. If not, show the input grid. */}
+      {slides && !isGenerating ? (
+        <div className="relative">
+           <button 
+             onClick={() => setSlides(null)} 
+             className="fixed bottom-6 left-6 z-50 flex items-center gap-2 px-6 py-3 bg-black text-white font-bold uppercase border-2 border-white shadow-lg hover:bg-neo-pink hover:text-black hover:border-black transition-all"
+           >
+             <ChevronLeft size={20} /> Back to Editor
+           </button>
+           <SlideListPreview slides={slides} theme={selectedTheme} />
+        </div>
+      ) : (
+        <div className="max-w-7xl mx-auto px-4 py-8 md:py-16">
+          <div className="grid lg:grid-cols-12 gap-12">
             
-            {/* Theme Selector */}
-            <div className="grid grid-cols-2 gap-3 mb-8">
-               {Object.entries(THEMES).map(([key, config]) => (
-                 <button
-                   key={key}
-                   onClick={() => setSelectedTheme(key as Theme)}
-                   className={`p-3 text-left border-2 transition-all flex flex-col gap-2 ${selectedTheme === key ? 'border-black dark:border-white ring-2 ring-offset-2 ring-black dark:ring-white bg-slate-100 dark:bg-slate-700' : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-700'}`}
-                 >
-                    <div className={`w-full h-8 ${config.bg} border border-slate-300 relative overflow-hidden`}>
-                       <div className={`absolute top-0 right-0 w-4 h-full ${config.accent}`}></div>
+            {/* LEFT: SETTINGS */}
+            <div className="lg:col-span-4 space-y-6">
+              <div className="bg-white dark:bg-slate-800 p-6 border-4 border-black dark:border-white shadow-neo dark:shadow-neo-white">
+                
+                {/* Theme Selector */}
+                <h2 className="text-xl font-black mb-4 uppercase flex items-center gap-2">
+                   <Palette size={20} /> Visual Style
+                </h2>
+                <div className="grid grid-cols-2 gap-3 mb-8">
+                   {Object.entries(THEMES).map(([key, config]) => (
+                     <button
+                       key={key}
+                       onClick={() => setSelectedTheme(key as Theme)}
+                       className={`p-3 text-left border-2 transition-all flex flex-col gap-2 ${selectedTheme === key ? 'border-black dark:border-white bg-slate-100 dark:bg-slate-700 ring-1 ring-black dark:ring-white' : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+                     >
+                        <div className={`w-full h-8 ${config.bg} border border-slate-300 relative overflow-hidden shadow-sm`}>
+                           <div className={`absolute top-0 right-0 w-4 h-full ${config.accent}`}></div>
+                        </div>
+                        <span className="text-xs font-bold uppercase">{config.name}</span>
+                     </button>
+                   ))}
+                </div>
+
+                {/* Mode Selector */}
+                <h2 className="text-xl font-black mb-4 uppercase flex items-center gap-2">
+                   <Zap size={20} /> AI Mode
+                </h2>
+                <div className="flex flex-col gap-2 mb-8">
+                   <button 
+                      onClick={() => setGenerationMode('strict')}
+                      className={`p-4 border-2 text-left transition-all ${generationMode === 'strict' ? 'border-black bg-neo-yellow text-black' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}
+                   >
+                      <div className="font-bold uppercase text-sm flex items-center gap-2">
+                        <FileText size={16} /> Strict Summary
+                      </div>
+                      <p className="text-xs mt-1 opacity-80">Stick to facts provided. No hallucinations.</p>
+                   </button>
+                   
+                   <button 
+                      onClick={() => setGenerationMode('creative')}
+                      className={`p-4 border-2 text-left transition-all ${generationMode === 'creative' ? 'border-black bg-neo-purple text-black' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}
+                   >
+                      <div className="font-bold uppercase text-sm flex items-center gap-2">
+                        <Sparkles size={16} /> Creative Expansion
+                      </div>
+                      <p className="text-xs mt-1 opacity-80">Infer details, add examples, and enhance content.</p>
+                   </button>
+                </div>
+
+              </div>
+            </div>
+
+            {/* RIGHT: CONTENT INPUT */}
+            <div className="lg:col-span-8">
+               <div className="bg-white dark:bg-slate-800 p-8 border-4 border-black dark:border-white shadow-neo-lg dark:shadow-neo-white min-h-[600px] flex flex-col">
+                  {isGenerating ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center">
+                       <div className="relative w-24 h-24 mb-8">
+                          <div className="absolute inset-0 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
+                          <div className="absolute inset-4 border-4 border-neo-pink border-b-transparent rounded-full animate-spin reverse"></div>
+                       </div>
+                       <h3 className="text-4xl font-black uppercase animate-pulse mb-2">Generating Deck</h3>
+                       <p className="text-slate-500 font-bold uppercase tracking-widest">{generationMode} Mode Active</p>
                     </div>
-                    <span className="text-xs font-bold uppercase">{config.name}</span>
-                 </button>
-               ))}
+                  ) : (
+                    <>
+                      <h2 className="text-3xl font-black mb-6 uppercase flex items-center gap-2">
+                         <LayoutIcon size={28} /> Source Content
+                      </h2>
+                      <p className="text-slate-500 mb-4">Paste your rough notes, report, or article below. NeoDeck will structure it into a compelling narrative.</p>
+                      
+                      <textarea 
+                        value={inputText}
+                        onChange={(e) => setInputText(e.target.value)}
+                        placeholder="e.g. The IEEE Student Branch is organizing a Hackathon next month. We need sponsors and participants..."
+                        className="w-full flex-grow min-h-[300px] p-6 border-2 border-black bg-slate-50 focus:outline-none focus:ring-4 focus:ring-neo-yellow/50 font-medium text-lg resize-none mb-6 transition-all"
+                      />
+                      
+                      <div className="flex gap-4">
+                         <div className="flex-1">
+                            <label className="flex items-center justify-center w-full h-full p-4 bg-slate-100 border-2 border-dashed border-slate-300 cursor-pointer hover:bg-slate-200 transition-all text-sm font-bold uppercase text-slate-500 gap-2">
+                               <Upload size={18} /> Upload .TXT File
+                               <input type="file" onChange={handleFileUpload} className="hidden" />
+                            </label>
+                         </div>
+                         <button 
+                           onClick={handleGenerate}
+                           disabled={!inputText}
+                           className="flex-[2] py-4 bg-black text-white text-xl font-black uppercase tracking-widest border-4 border-transparent hover:bg-neo-green hover:text-black hover:border-black shadow-neo hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                         >
+                           Generate Slides <ChevronRight size={24} />
+                         </button>
+                      </div>
+                    </>
+                  )}
+               </div>
             </div>
 
-            <h2 className="text-3xl font-black mb-4 uppercase flex items-center gap-2">
-               <LayoutIcon size={24} /> Content
-            </h2>
-            <textarea 
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="Paste content about your team, event, or topic here..."
-              className="w-full h-48 p-4 border-2 border-black bg-slate-50 focus:outline-none focus:ring-2 focus:ring-neo-pink font-medium text-sm resize-none mb-4"
-            />
-            
-            <div className="flex gap-2 mb-6">
-               <button onClick={() => setInputText('')} className="flex-1 p-2 bg-slate-200 text-xs font-bold uppercase border border-black hover:bg-slate-300">Clear</button>
-               <button className="flex-1 p-2 bg-slate-200 text-xs font-bold uppercase border border-black hover:bg-slate-300 relative overflow-hidden">
-                  Upload .TXT
-                  <input type="file" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
-               </button>
-            </div>
-
-            <button 
-              onClick={handleGenerate}
-              disabled={isGenerating || !inputText}
-              className="w-full py-4 bg-black text-white text-xl font-black uppercase tracking-widest border-4 border-transparent hover:bg-neo-pink hover:text-black hover:border-black shadow-neo hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {isGenerating ? <RefreshCw className="animate-spin" /> : "Generate Deck"}
-            </button>
           </div>
         </div>
-
-        {/* Output Section (8 Columns) */}
-        <div className="lg:col-span-8 min-h-[600px]">
-          {isGenerating ? (
-            <div className="h-full flex flex-col items-center justify-center bg-white dark:bg-slate-900 border-4 border-black dark:border-white shadow-neo border-dashed">
-               <div className="w-32 h-32 relative mb-8">
-                  <div className="absolute inset-0 bg-neo-pink animate-ping opacity-75 rounded-full"></div>
-                  <div className="relative bg-white border-4 border-black w-32 h-32 flex items-center justify-center rounded-full z-10">
-                     <RefreshCw size={48} className="animate-spin" />
-                  </div>
-               </div>
-               <h3 className="text-3xl font-black uppercase animate-pulse">Forging Slides...</h3>
-               <p className="text-slate-500 font-bold mt-2 uppercase tracking-widest">Designing & Generating AI Images</p>
-            </div>
-          ) : slides ? (
-            <SlidePreview slides={slides} theme={selectedTheme} />
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-800 border-4 border-black dark:border-white border-dashed opacity-50 p-8 text-center">
-               <ImageIcon size={64} className="mb-6 text-slate-400" />
-               <h3 className="text-2xl font-bold uppercase text-slate-500 mb-2">Ready to Design</h3>
-               <p className="text-slate-400 max-w-md mx-auto">Select a theme on the left, paste your content, and watch AI generate slides with custom imagery.</p>
-            </div>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   );
 };

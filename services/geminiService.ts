@@ -1,13 +1,7 @@
-import Groq from "groq-sdk";
+import { GoogleGenAI, Type } from "@google/genai";
 import { Slide } from '../types';
 
-// Using the provided API Key directly.
-const API_KEY = "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";
-
-const groq = new Groq({ 
-  apiKey: API_KEY, 
-  dangerouslyAllowBrowser: true 
-});
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const SYSTEM_INSTRUCTION = `
 You are a presentation expert. Your job is to take raw text or a topic and convert it into a structural JSON for a slide deck.
@@ -15,49 +9,65 @@ You are a presentation expert. Your job is to take raw text or a topic and conve
 You must output a valid JSON object with a single key "slides" containing an array of slide objects.
 Each slide object must have:
 - title (string): Short punchy title.
-- content (string): The main body text (keep it concise).
+- content (string): The main body text.
 - bulletPoints (array of strings): 2-4 key takeaways.
-- layout (one of: "title", "bullet", "split", "quote").
+- layout (one of: "title", "bullet", "split", "quote", "image-center").
 - imagePrompt (string): A descriptive English prompt to generate an AI image for this slide. It should describe a visual scene, style, or object related to the content. Do not use text in the image prompt.
 
-Example JSON:
-{
-  "slides": [
-    {
-      "title": "NEO DESIGN",
-      "content": "Bold shadows and high contrast.",
-      "bulletPoints": ["Stark borders", "Vibrant colors"],
-      "layout": "split",
-      "imagePrompt": "abstract geometric 3d shapes, yellow and black, high contrast, neo brutalism style, 4k"
-    }
-  ]
-}
+Modes:
+- STRICT: Stick exactly to the user's provided text. Do not add external facts or fluff. Summarize what is there.
+- CREATIVE: You are the expert. Expand on the user's ideas, infer logical consequences, add engaging examples, and make the content richer than the input.
 `;
 
-export const generateSlides = async (input: string): Promise<Slide[]> => {
+export const generateSlides = async (input: string, mode: 'strict' | 'creative'): Promise<Slide[]> => {
   try {
-    const completion = await groq.chat.completions.create({
-      messages: [
-        { role: "system", content: SYSTEM_INSTRUCTION },
-        { 
-          role: "user", 
-          content: `Create a 5-slide presentation for this content: "${input}". Ensure the first slide is a Title slide.` 
+    const prompt = `Create a 6-slide presentation for this content: "${input}". 
+    Mode: ${mode.toUpperCase()}.
+    Ensure the first slide is a Title slide. 
+    Make the design and flow logical.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        systemInstruction: SYSTEM_INSTRUCTION,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            slides: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  title: { type: Type.STRING },
+                  content: { type: Type.STRING },
+                  bulletPoints: {
+                    type: Type.ARRAY,
+                    items: { type: Type.STRING }
+                  },
+                  layout: { 
+                    type: Type.STRING,
+                    description: 'One of: "title", "bullet", "split", "quote", "image-center"'
+                  },
+                  imagePrompt: { type: Type.STRING }
+                },
+                required: ["title", "content", "bulletPoints", "layout", "imagePrompt"]
+              }
+            }
+          },
+          required: ["slides"]
         }
-      ],
-      model: "llama-3.3-70b-versatile",
-      response_format: { type: "json_object" }
+      }
     });
 
-    const content = completion.choices[0]?.message?.content;
+    const content = response.text;
     
     if (content) {
       try {
         const parsed = JSON.parse(content);
-        // Handle both direct array or wrapped object
         if (parsed.slides && Array.isArray(parsed.slides)) {
-          return parsed.slides;
-        } else if (Array.isArray(parsed)) {
-          return parsed;
+          return parsed.slides as Slide[];
         }
       } catch (e) {
         console.error("Failed to parse JSON", e);
@@ -65,7 +75,7 @@ export const generateSlides = async (input: string): Promise<Slide[]> => {
     }
     throw new Error("Invalid content generated");
   } catch (error: any) {
-    console.error("Groq API Error:", error);
+    console.error("Gemini API Error:", error);
     // Return the actual error message to help debug
     return [
       {
@@ -75,20 +85,20 @@ export const generateSlides = async (input: string): Promise<Slide[]> => {
         layout: "title",
         imagePrompt: "error warning sign glitch style red"
       }
-    ];
+    ] as Slide[];
   }
 };
 
 export const sendMessageToGemini = async (userMessage: string): Promise<string> => {
   try {
-    const completion = await groq.chat.completions.create({
-      messages: [
-        { role: "system", content: "You are NeoDeck's helpful assistant. Keep answers short and punchy." },
-        { role: "user", content: userMessage }
-      ],
-      model: "llama-3.3-70b-versatile"
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: userMessage,
+      config: {
+        systemInstruction: "You are NeoDeck's helpful assistant. Keep answers short and punchy."
+      }
     });
-    return completion.choices[0]?.message?.content || "Processing...";
+    return response.text || "Processing...";
   } catch (error) {
     console.error(error);
     return "Offline mode (Check API Key).";
