@@ -1,4 +1,4 @@
-export type Theme = 'neo' | 'cyber' | 'corporate' | 'minimal';
+export type Theme = 'neo' | 'cyber' | 'corporate' | 'minimal' | 'tech' | 'lux' | 'nature' | 'gradient';
 
 export interface Slide {
   title: string;

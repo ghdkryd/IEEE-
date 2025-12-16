@@ -4,27 +4,34 @@ import { Slide } from '../types';
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const SYSTEM_INSTRUCTION = `
-You are a presentation expert. Your job is to take raw text or a topic and convert it into a structural JSON for a slide deck.
+You are a top-tier Presentation Designer. Your goal is to create structured content for slide decks.
 
-You must output a valid JSON object with a single key "slides" containing an array of slide objects.
-Each slide object must have:
-- title (string): Short punchy title.
-- content (string): The main body text.
-- bulletPoints (array of strings): 2-4 key takeaways.
-- layout (one of: "title", "bullet", "split", "quote", "image-center").
-- imagePrompt (string): A descriptive English prompt to generate an AI image for this slide. It should describe a visual scene, style, or object related to the content. Do not use text in the image prompt.
+Output a JSON object with a "slides" array.
+Each slide must have:
+- title (string): Short, impactful title.
+- content (string): Concise body text (max 2 sentences).
+- bulletPoints (string array): 3-5 short, punchy points.
+- layout (enum): "title", "bullet", "split", "quote", "image-center".
+- imagePrompt (string): A detailed visual description for an AI image generator. Describe the scene, lighting, mood, and objects. NO TEXT in the image prompt.
 
 Modes:
-- STRICT: Stick exactly to the user's provided text. Do not add external facts or fluff. Summarize what is there.
-- CREATIVE: You are the expert. Expand on the user's ideas, infer logical consequences, add engaging examples, and make the content richer than the input.
+- STRICT: Summarize the user's input exactly.
+- CREATIVE: Expand, explain, and add value to the content.
 `;
 
-export const generateSlides = async (input: string, mode: 'strict' | 'creative'): Promise<Slide[]> => {
+export const generateSlides = async (input: string, mode: 'strict' | 'creative', slideCount: number): Promise<Slide[]> => {
   try {
-    const prompt = `Create a 6-slide presentation for this content: "${input}". 
+    const prompt = `Create a ${slideCount}-slide presentation.
+    Topic/Content: "${input}". 
     Mode: ${mode.toUpperCase()}.
-    Ensure the first slide is a Title slide. 
-    Make the design and flow logical.`;
+    
+    Structure:
+    1. Title Slide
+    2. Introduction
+    ... (body slides)
+    ${slideCount}. Conclusion/Call to Action
+    
+    Ensure variety in layouts.`;
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
@@ -76,14 +83,13 @@ export const generateSlides = async (input: string, mode: 'strict' | 'creative')
     throw new Error("Invalid content generated");
   } catch (error: any) {
     console.error("Gemini API Error:", error);
-    // Return the actual error message to help debug
     return [
       {
         title: "Error Occurred",
         content: error?.message || "Failed to reach the AI service.",
-        bulletPoints: ["Check Console for details", "Verify API Key", "Try again"],
+        bulletPoints: ["Check connection", "Verify API Key", "Try again"],
         layout: "title",
-        imagePrompt: "error warning sign glitch style red"
+        imagePrompt: "glitch art error warning red"
       }
     ] as Slide[];
   }
@@ -101,6 +107,6 @@ export const sendMessageToGemini = async (userMessage: string): Promise<string> 
     return response.text || "Processing...";
   } catch (error) {
     console.error(error);
-    return "Offline mode (Check API Key).";
+    return "Offline mode.";
   }
 };
