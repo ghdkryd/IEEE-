@@ -1,8 +1,7 @@
 import Groq from "groq-sdk";
 import { Slide } from '../types';
 
-// Using the provided API Key directly as requested.
-// in production, this should be moved to import.meta.env.VITE_GROQ_API_KEY
+// Using the provided API Key directly.
 const API_KEY = "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";
 
 const groq = new Groq({ 
@@ -44,7 +43,7 @@ export const generateSlides = async (input: string): Promise<Slide[]> => {
           content: `Create a 5-slide presentation for this content: "${input}". Ensure the first slide is a Title slide.` 
         }
       ],
-      model: "llama3-70b-8192",
+      model: "llama-3.3-70b-versatile",
       response_format: { type: "json_object" }
     });
 
@@ -64,13 +63,14 @@ export const generateSlides = async (input: string): Promise<Slide[]> => {
       }
     }
     throw new Error("Invalid content generated");
-  } catch (error) {
+  } catch (error: any) {
     console.error("Groq API Error:", error);
+    // Return the actual error message to help debug
     return [
       {
-        title: "Connection Error",
-        content: "Failed to reach the Groq Cloud.",
-        bulletPoints: ["Check API Key", "Verify Network", "Try again"],
+        title: "Error Occurred",
+        content: error?.message || "Failed to reach the AI service.",
+        bulletPoints: ["Check Console for details", "Verify API Key", "Try again"],
         layout: "title"
       }
     ];
@@ -84,11 +84,11 @@ export const sendMessageToGemini = async (userMessage: string): Promise<string> 
         { role: "system", content: "You are NeoDeck's helpful assistant. Keep answers short and punchy." },
         { role: "user", content: userMessage }
       ],
-      model: "llama3-70b-8192"
+      model: "llama-3.3-70b-versatile"
     });
     return completion.choices[0]?.message?.content || "Processing...";
   } catch (error) {
     console.error(error);
-    return "Offline mode.";
+    return "Offline mode (Check API Key).";
   }
 };
