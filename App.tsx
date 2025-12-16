@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Menu, X, Moon, Sun, Github, Linkedin, Mail, MapPin, ChevronRight, Users, Code, Calendar, Award } from 'lucide-react';
+import { Menu, X, Moon, Sun, Github, Linkedin, Mail, MapPin, ChevronRight, Users, Code, Calendar, Award, Check } from 'lucide-react';
 import { ORG_NAME, NAV_ITEMS, EVENTS, TEAM, PROJECTS, BLOG_POSTS, MISSION } from './constants';
 import { ChatAssistant } from './components/ChatAssistant';
+import { Event } from './types';
 
 // --- Navbar Component ---
 const Navbar: React.FC<{ darkMode: boolean; toggleDarkMode: () => void }> = ({ darkMode, toggleDarkMode }) => {
@@ -275,42 +276,153 @@ const About: React.FC = () => (
   </div>
 );
 
-const Events: React.FC = () => (
-  <div className="max-w-7xl mx-auto px-4 py-16">
-    <div className="mb-16 border-l-8 border-ieee-blue pl-6">
-      <h1 className="text-6xl font-bold text-black dark:text-white mb-4 uppercase">Events</h1>
-      <p className="text-xl font-bold text-slate-600 dark:text-slate-400">Join our workshops, seminars, and social gatherings.</p>
-    </div>
+interface RegistrationModalProps {
+  event: Event;
+  onClose: () => void;
+}
 
-    <div className="grid gap-8">
-      {EVENTS.map((event) => (
-        <div key={event.id} className="bg-white dark:bg-slate-900 border-4 border-black dark:border-white shadow-neo dark:shadow-neo-white flex flex-col md:flex-row hover:-translate-y-1 transition-transform">
-          <div className="md:w-1/3 h-48 md:h-auto relative border-b-4 md:border-b-0 md:border-r-4 border-black dark:border-white">
-            <img src={event.image} alt={event.title} className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-500" />
-            <div className="absolute top-0 left-0 bg-neo-yellow border-r-4 border-b-4 border-black text-black px-4 py-2 text-sm font-bold uppercase tracking-wider">
-              {event.category}
-            </div>
-          </div>
-          <div className="p-8 flex flex-col justify-center flex-1">
-            <div className="flex items-center gap-2 text-sm text-white bg-black dark:bg-white dark:text-black w-fit px-3 py-1 font-bold mb-4">
-              <Calendar size={14} /> {event.date}
-            </div>
-            <h2 className="text-3xl font-bold text-black dark:text-white mb-3 font-sans uppercase">{event.title}</h2>
-            <p className="text-slate-700 dark:text-slate-300 mb-8 font-medium text-lg">{event.description}</p>
-            <div className="flex items-center justify-between mt-auto pt-6 border-t-2 border-slate-200 dark:border-slate-800">
-              <div className="flex items-center gap-2 text-sm font-bold text-slate-500 dark:text-slate-400">
-                <MapPin size={18} /> {event.location}
-              </div>
-              <button className="px-6 py-3 bg-ieee-blue text-white border-2 border-black dark:border-white shadow-neo-sm hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all font-bold uppercase">
-                Register Now
-              </button>
-            </div>
-          </div>
+const RegistrationModal: React.FC<RegistrationModalProps> = ({ event, onClose }) => {
+  const [formData, setFormData] = useState({ name: '', email: '', universityId: '' });
+  const [status, setStatus] = useState<'idle' | 'submitting' | 'success'>('idle');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus('submitting');
+    // Simulate API call
+    setTimeout(() => {
+      setStatus('success');
+      setTimeout(() => {
+        onClose();
+        setStatus('idle');
+        setFormData({ name: '', email: '', universityId: '' });
+      }, 2000);
+    }, 1500);
+  };
+
+  if (status === 'success') {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="bg-white dark:bg-slate-900 w-full max-w-md p-8 border-4 border-black dark:border-white shadow-neo-lg dark:shadow-neo-white text-center">
+           <div className="w-20 h-20 bg-neo-green rounded-full border-4 border-black flex items-center justify-center mx-auto mb-6 animate-in zoom-in spin-in-12">
+             <Check size={40} className="text-black" strokeWidth={3} />
+           </div>
+           <h3 className="text-2xl font-bold text-black dark:text-white mb-2 uppercase">You're In!</h3>
+           <p className="text-slate-600 dark:text-slate-400 font-medium">Successfully registered for {event.title}.</p>
         </div>
-      ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+       <div className="bg-white dark:bg-slate-900 w-full max-w-md border-4 border-black dark:border-white shadow-neo-lg dark:shadow-neo-white relative animate-in zoom-in-95 duration-200">
+          <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+            <X size={24} className="text-black dark:text-white" />
+          </button>
+          
+          <div className="p-8 border-b-4 border-black dark:border-white bg-neo-yellow dark:bg-slate-800">
+             <h2 className="text-2xl font-bold text-black dark:text-white uppercase leading-none">Event Registration</h2>
+          </div>
+          
+          <div className="p-8">
+             <p className="mb-6 text-slate-600 dark:text-slate-400 font-medium">Registering for: <br/><span className="text-ieee-blue dark:text-neo-pink font-bold text-lg">{event.title}</span></p>
+             
+             <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-black dark:text-white mb-1 uppercase">Full Name</label>
+                  <input 
+                    required 
+                    value={formData.name}
+                    onChange={e => setFormData({...formData, name: e.target.value})}
+                    type="text" 
+                    className="w-full px-4 py-3 border-2 border-black dark:border-white bg-white dark:bg-slate-950 focus:outline-none focus:shadow-neo-sm focus:bg-neo-yellow/10 transition-all font-medium dark:text-white" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-black dark:text-white mb-1 uppercase">Email</label>
+                  <input 
+                    required 
+                    value={formData.email}
+                    onChange={e => setFormData({...formData, email: e.target.value})}
+                    type="email" 
+                    className="w-full px-4 py-3 border-2 border-black dark:border-white bg-white dark:bg-slate-950 focus:outline-none focus:shadow-neo-sm focus:bg-neo-yellow/10 transition-all font-medium dark:text-white" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-black dark:text-white mb-1 uppercase">University ID</label>
+                  <input 
+                    required 
+                    value={formData.universityId}
+                    onChange={e => setFormData({...formData, universityId: e.target.value})}
+                    type="text" 
+                    className="w-full px-4 py-3 border-2 border-black dark:border-white bg-white dark:bg-slate-950 focus:outline-none focus:shadow-neo-sm focus:bg-neo-yellow/10 transition-all font-medium dark:text-white" 
+                  />
+                </div>
+                
+                <button 
+                  type="submit" 
+                  disabled={status === 'submitting'}
+                  className="w-full py-4 mt-4 bg-black dark:bg-white text-white dark:text-black border-2 border-black dark:border-white shadow-neo hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] font-bold text-lg uppercase transition-all disabled:opacity-70 disabled:cursor-wait"
+                >
+                  {status === 'submitting' ? 'Processing...' : 'Complete Registration'}
+                </button>
+             </form>
+          </div>
+       </div>
     </div>
-  </div>
-);
+  );
+};
+
+const Events: React.FC = () => {
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 py-16">
+      <div className="mb-16 border-l-8 border-ieee-blue pl-6">
+        <h1 className="text-6xl font-bold text-black dark:text-white mb-4 uppercase">Events</h1>
+        <p className="text-xl font-bold text-slate-600 dark:text-slate-400">Join our workshops, seminars, and social gatherings.</p>
+      </div>
+
+      <div className="grid gap-8">
+        {EVENTS.map((event) => (
+          <div key={event.id} className="bg-white dark:bg-slate-900 border-4 border-black dark:border-white shadow-neo dark:shadow-neo-white flex flex-col md:flex-row hover:-translate-y-1 transition-transform">
+            <div className="md:w-1/3 h-48 md:h-auto relative border-b-4 md:border-b-0 md:border-r-4 border-black dark:border-white">
+              <img src={event.image} alt={event.title} className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-500" />
+              <div className="absolute top-0 left-0 bg-neo-yellow border-r-4 border-b-4 border-black text-black px-4 py-2 text-sm font-bold uppercase tracking-wider">
+                {event.category}
+              </div>
+            </div>
+            <div className="p-8 flex flex-col justify-center flex-1">
+              <div className="flex items-center gap-2 text-sm text-white bg-black dark:bg-white dark:text-black w-fit px-3 py-1 font-bold mb-4">
+                <Calendar size={14} /> {event.date}
+              </div>
+              <h2 className="text-3xl font-bold text-black dark:text-white mb-3 font-sans uppercase">{event.title}</h2>
+              <p className="text-slate-700 dark:text-slate-300 mb-8 font-medium text-lg">{event.description}</p>
+              <div className="flex items-center justify-between mt-auto pt-6 border-t-2 border-slate-200 dark:border-slate-800">
+                <div className="flex items-center gap-2 text-sm font-bold text-slate-500 dark:text-slate-400">
+                  <MapPin size={18} /> {event.location}
+                </div>
+                <button 
+                  onClick={() => setSelectedEvent(event)}
+                  className="px-6 py-3 bg-ieee-blue text-white border-2 border-black dark:border-white shadow-neo-sm hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all font-bold uppercase"
+                >
+                  Register Now
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {selectedEvent && (
+        <RegistrationModal 
+          event={selectedEvent} 
+          onClose={() => setSelectedEvent(null)} 
+        />
+      )}
+    </div>
+  );
+};
 
 const Team: React.FC = () => (
   <div className="max-w-7xl mx-auto px-4 py-16">
