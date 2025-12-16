@@ -1,11 +1,12 @@
-export type Theme = 'neo' | 'cyber' | 'corporate' | 'minimal' | 'tech' | 'lux' | 'nature' | 'gradient';
+export type Theme = 'neo' | 'cyber' | 'corporate' | 'minimal' | 'tech' | 'lux' | 'nature' | 'gradient' | 'geometric' | 'paper' | 'dark-modern' | 'swiss' | 'retro' | 'bauhaus';
+
+export type FontKey = 'cairo' | 'tajawal' | 'amiri' | 'inter' | 'grotesk' | 'playfair' | 'mono';
 
 export interface Slide {
   title: string;
   content: string;
   bulletPoints: string[];
-  layout: 'title' | 'bullet' | 'split' | 'quote' | 'image-center';
-  imagePrompt: string; // Required now for AI image generation
+  layout: 'title' | 'bullet' | 'split' | 'quote' | 'focus';
 }
 
 export interface NavigationItem {

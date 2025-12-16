@@ -1,84 +1,144 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { HashRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Menu, X, Moon, Sun, Download, ChevronRight, ChevronLeft, Upload, Play, Copy, RefreshCw, Palette, Image as ImageIcon, Layout as LayoutIcon, Sparkles, FileText, Zap, Monitor, Layers } from 'lucide-react';
+import { Menu, X, Moon, Sun, Download, ChevronRight, ChevronLeft, Upload, Play, Copy, RefreshCw, Palette, Layout as LayoutIcon, Sparkles, FileText, Zap, Monitor, Layers, Type as TypeIcon } from 'lucide-react';
 import { NAV_ITEMS, MISSION } from './constants';
 import { ChatAssistant } from './components/ChatAssistant';
 import { generateSlides } from './services/geminiService';
-import { Slide, Theme } from './types';
+import { Slide, Theme, FontKey } from './types';
 
-// --- Extended Theme Configurations ---
+// --- Helper: Detect Arabic ---
+const isArabic = (text: string) => {
+  const arabicPattern = /[\u0600-\u06FF]/;
+  return arabicPattern.test(text);
+};
+
+// --- Font Configurations ---
+const FONTS: Record<FontKey, { name: string; class: string; type: 'arabic' | 'english' | 'both' }> = {
+  cairo: { name: 'Cairo (Modern Arabic)', class: 'font-cairo', type: 'both' },
+  tajawal: { name: 'Tajawal (Clean Arabic)', class: 'font-tajawal', type: 'both' },
+  amiri: { name: 'Amiri (Classic Arabic)', class: 'font-amiri', type: 'both' },
+  inter: { name: 'Inter (Standard)', class: 'font-sans', type: 'english' },
+  grotesk: { name: 'Space Grotesk (Bold)', class: 'font-grotesk', type: 'english' },
+  playfair: { name: 'Playfair (Elegant)', class: 'font-serif', type: 'english' },
+  mono: { name: 'Roboto Mono (Code)', class: 'font-mono', type: 'english' },
+};
+
+// --- Theme Configurations ---
+// Optimized for Text-Only Layouts (using patterns and borders)
 const THEMES: Record<Theme, { 
   name: string; 
   bg: string; 
   text: string;
   accent: string;
-  previewClass: string; // Used for the slide container styling
+  previewClass: string;
+  pattern?: string;
 }> = {
   neo: {
     name: 'Neo-Brutalist',
     bg: 'bg-yellow-50',
     text: 'text-black',
     accent: 'bg-neo-pink',
-    previewClass: 'bg-white border-4 border-black font-sans'
+    previewClass: 'bg-white border-8 border-black',
+    pattern: 'bg-[radial-gradient(black_1px,transparent_1px)] [background-size:16px_16px] opacity-20'
+  },
+  swiss: {
+    name: 'Swiss Style',
+    bg: 'bg-[#f0f0f0]',
+    text: 'text-black',
+    accent: 'bg-red-600',
+    previewClass: 'bg-[#f0f0f0] border-l-[32px] border-red-600 shadow-xl text-black',
+    pattern: 'opacity-5'
+  },
+  retro: {
+    name: 'Retrowave',
+    bg: 'bg-[#1a0b2e]',
+    text: 'text-pink-400',
+    accent: 'bg-cyan-400',
+    previewClass: 'bg-[#1a0b2e] border-4 border-pink-500 shadow-[0_0_30px_#ec4899] text-cyan-300',
+    pattern: 'bg-[linear-gradient(transparent_95%,rgba(236,72,153,0.3)_95%)] bg-[size:100%_40px]'
+  },
+  bauhaus: {
+    name: 'Bauhaus',
+    bg: 'bg-[#f4f4f0]',
+    text: 'text-slate-900',
+    accent: 'bg-yellow-500',
+    previewClass: 'bg-[#f4f4f0] border-b-[20px] border-blue-600 border-r-[20px] border-red-600 shadow-lg',
   },
   cyber: {
     name: 'Cyberpunk',
     bg: 'bg-zinc-950',
     text: 'text-cyan-400',
     accent: 'bg-purple-600',
-    previewClass: 'bg-black border-2 border-cyan-500 shadow-[0_0_20px_rgba(6,182,212,0.3)] font-mono text-cyan-400'
+    previewClass: 'bg-black border-2 border-cyan-500 shadow-[0_0_20px_rgba(6,182,212,0.3)] text-cyan-400',
+    pattern: 'bg-[linear-gradient(45deg,rgba(6,182,212,0.1)_25%,transparent_25%,transparent_50%,rgba(6,182,212,0.1)_50%,rgba(6,182,212,0.1)_75%,transparent_75%,transparent)] [background-size:20px_20px]'
   },
   corporate: {
     name: 'Professional',
     bg: 'bg-slate-50',
     text: 'text-slate-800',
-    accent: 'bg-blue-700',
-    previewClass: 'bg-gradient-to-br from-white to-slate-100 border border-slate-300 shadow-xl font-sans text-slate-800'
+    accent: 'bg-blue-800',
+    previewClass: 'bg-gradient-to-br from-white to-slate-200 border border-slate-300 shadow-xl text-slate-800'
   },
   minimal: {
     name: 'Editorial',
     bg: 'bg-stone-50',
     text: 'text-stone-900',
     accent: 'bg-stone-800',
-    previewClass: 'bg-white shadow-lg font-serif text-stone-900'
+    previewClass: 'bg-white shadow-lg text-stone-900 border border-stone-100'
   },
   tech: {
     name: 'Tech Blue',
     bg: 'bg-slate-900',
     text: 'text-white',
     accent: 'bg-blue-500',
-    previewClass: 'bg-slate-900 border-t-4 border-blue-500 text-white font-sans'
+    previewClass: 'bg-slate-900 border-t-8 border-blue-500 text-white',
+    pattern: 'bg-[radial-gradient(rgba(59,130,246,0.2)_1px,transparent_1px)] [background-size:20px_20px]'
   },
   lux: {
     name: 'Luxury',
-    bg: 'bg-black',
+    bg: 'bg-[#0a0a0a]',
     text: 'text-amber-100',
     accent: 'bg-amber-600',
-    previewClass: 'bg-neutral-900 border border-amber-500/30 text-amber-50 font-serif'
+    previewClass: 'bg-[#0a0a0a] border border-amber-500/50 text-amber-50 shadow-2xl'
   },
   nature: {
     name: 'Organic',
     bg: 'bg-green-50',
     text: 'text-green-900',
-    accent: 'bg-green-600',
-    previewClass: 'bg-[#F0F5F0] text-green-900 font-sans'
+    accent: 'bg-green-700',
+    previewClass: 'bg-[#F0F5F0] text-green-900 border-4 border-green-900/10'
   },
   gradient: {
     name: 'Vibrant',
     bg: 'bg-white',
     text: 'text-white',
     accent: 'bg-white',
-    previewClass: 'bg-gradient-to-br from-violet-600 to-indigo-600 text-white font-sans'
+    previewClass: 'bg-gradient-to-br from-violet-600 via-indigo-600 to-blue-600 text-white'
+  },
+  geometric: {
+    name: 'Geometric',
+    bg: 'bg-slate-100',
+    text: 'text-slate-900',
+    accent: 'bg-indigo-500',
+    previewClass: 'bg-slate-50 border-4 border-slate-900 text-slate-900',
+    pattern: 'bg-[radial-gradient(#4f46e5_1px,transparent_1px)] [background-size:16px_16px]'
+  },
+  paper: {
+    name: 'Sketch / Paper',
+    bg: 'bg-orange-50',
+    text: 'text-gray-800',
+    accent: 'bg-orange-400',
+    previewClass: 'bg-[#fffdf5] border-2 border-gray-300 shadow-sm text-gray-800',
+    pattern: 'bg-[url("https://www.transparenttextures.com/patterns/cardboard.png")] opacity-40'
+  },
+  'dark-modern': {
+    name: 'Dark Modern',
+    bg: 'bg-zinc-900',
+    text: 'text-white',
+    accent: 'bg-emerald-500',
+    previewClass: 'bg-zinc-900 border border-zinc-700 text-white',
+    pattern: 'bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] [background-size:24px_24px]'
   }
-};
-
-// --- Improved Image URL Helper ---
-const getAIImageUrl = (prompt: string, seed: number) => {
-  // Simplified prompt to avoid filters and ensure clarity
-  const cleanPrompt = prompt.replace(/[^a-zA-Z0-9 ]/g, ""); 
-  const enhancedPrompt = encodeURIComponent(`${cleanPrompt}, professional 4k, photorealistic, cinematic composition`);
-  // Added a random seed per slide/index to ensure images don't cache aggressively or duplicate
-  return `https://image.pollinations.ai/prompt/${enhancedPrompt}?width=1280&height=720&nologo=true&seed=${seed}`;
 };
 
 // --- Navbar Component ---
@@ -120,40 +180,8 @@ const Navbar: React.FC<{ darkMode: boolean; toggleDarkMode: () => void }> = ({ d
               {darkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
           </div>
-
-          <div className="flex md:hidden items-center gap-4">
-            <button onClick={toggleDarkMode} className="p-1">
-              {darkMode ? <Sun size={24} className="text-white" /> : <Moon size={24} />}
-            </button>
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="text-black dark:text-white p-2 border-2 border-black dark:border-white shadow-neo-sm"
-            >
-              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          </div>
         </div>
       </div>
-
-      {isMenuOpen && (
-        <div className="md:hidden bg-neo-yellow dark:bg-slate-800 border-b-4 border-black dark:border-white">
-          <div className="px-4 pt-2 pb-6 space-y-2">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.name}
-                to={item.path}
-                className={`block px-3 py-2 text-lg font-bold border-2 border-black dark:border-white shadow-neo-sm ${
-                  location.pathname === item.path
-                    ? 'bg-black text-white'
-                    : 'bg-white dark:bg-slate-900 text-black dark:text-white'
-                }`}
-              >
-                {item.name}
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
     </nav>
   );
 };
@@ -164,149 +192,201 @@ const Footer: React.FC = () => (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex flex-col md:flex-row justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400">
         <p>&copy; {new Date().getFullYear()} NeoDeck AI.</p>
-        <p className="bg-neo-yellow text-black px-2 mt-4 md:mt-0 border-2 border-black">Powered by Gemini & Pollinations.ai</p>
+        <p className="bg-neo-yellow text-black px-2 mt-4 md:mt-0 border-2 border-black">Powered by Gemini & Google Cloud</p>
       </div>
     </div>
   </footer>
 );
 
-// --- Vertical Workspace Style Slide Preview ---
-const SlideWorkspace: React.FC<{ slides: Slide[]; theme: Theme }> = ({ slides, theme }) => {
+// --- Slide Preview Component ---
+const SlideWorkspace: React.FC<{ slides: Slide[]; theme: Theme; font: FontKey }> = ({ slides, theme, font }) => {
   const themeConfig = THEMES[theme];
+  const fontConfig = FONTS[font];
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleDownload = () => {
-    alert("Exporting to PPTX... (This is a demo)");
+  const handleDownloadHTML = () => {
+    if (!containerRef.current) return;
+    
+    // Create a complete HTML document string
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <title>Presentation Deck</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&family=Inter:wght@400;700&family=Cairo:wght@400;700&family=Amiri:wght@400;700&family=Tajawal:wght@400;700&family=Playfair+Display:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+        <style>
+           .font-cairo { font-family: 'Cairo', sans-serif; }
+           .font-tajawal { font-family: 'Tajawal', sans-serif; }
+           .font-amiri { font-family: 'Amiri', serif; }
+           .font-sans { font-family: 'Inter', sans-serif; }
+           .font-grotesk { font-family: 'Space Grotesk', sans-serif; }
+           .font-serif { font-family: 'Playfair Display', serif; }
+           .font-mono { font-family: 'Roboto Mono', monospace; }
+           /* Print friendly */
+           @media print {
+             body { -webkit-print-color-adjust: exact; }
+           }
+        </style>
+      </head>
+      <body class="bg-gray-100 p-8 flex flex-col gap-8 items-center">
+        ${containerRef.current.innerHTML}
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `neodeck-${new Date().getTime()}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
-    <div className="w-full min-h-screen flex flex-col items-center bg-[#1e1e1e] relative">
+    <div className="w-full min-h-screen flex flex-col items-center bg-[#18181b] relative">
       
       {/* Top Bar */}
-      <div className="w-full bg-[#2d2d2d] text-white p-4 flex justify-between items-center border-b border-[#3d3d3d] sticky top-20 z-30 shadow-md">
+      <div className="w-full bg-[#27272a] text-white p-4 flex justify-between items-center border-b border-[#3f3f46] sticky top-20 z-30 shadow-md">
         <div className="flex items-center gap-3">
            <Monitor size={20} className="text-blue-400" />
-           <span className="font-bold text-sm tracking-wide">PRESENTATION PREVIEW</span>
+           <span className="font-bold text-sm tracking-wide hidden sm:inline">WORKSPACE VIEW</span>
            <span className="bg-blue-600 text-[10px] px-2 py-0.5 rounded font-bold">{slides.length} SLIDES</span>
         </div>
-        <button onClick={handleDownload} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold uppercase rounded transition-colors">
-          <Download size={14} /> Export PPTX
+        <button onClick={handleDownloadHTML} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold uppercase rounded transition-colors">
+          <Download size={14} /> Download HTML
         </button>
       </div>
 
       {/* Slide Canvas */}
-      <div className="w-full max-w-6xl p-8 space-y-12 pb-32">
-        {slides.map((slide, index) => (
-          <div key={index} className="flex gap-4 items-start group">
-            
-            {/* Slide Index & Tools */}
-            <div className="w-12 text-right pt-4 text-gray-500 font-mono text-xs hidden md:block">
-               {String(index + 1).padStart(2, '0')}
+      <div ref={containerRef} className="w-full max-w-6xl p-4 md:p-8 space-y-12 pb-32">
+        {slides.map((slide, index) => {
+          const slideIsArabic = isArabic(slide.title) || isArabic(slide.content);
+          
+          return (
+            <div key={index} className="flex gap-4 items-start group">
+              
+              {/* Slide Index */}
+              <div className="w-8 text-right pt-4 text-gray-500 font-mono text-xs hidden md:block select-none not-printable">
+                 {String(index + 1).padStart(2, '0')}
+              </div>
+
+              {/* THE SLIDE (16:9 Aspect Ratio Container) */}
+              <div 
+                className={`relative w-full aspect-video shadow-2xl overflow-hidden transform transition-transform duration-300 hover:scale-[1.01] ${themeConfig.previewClass}`}
+                dir={slideIsArabic ? 'rtl' : 'ltr'}
+              >
+                 {/* Font Application */}
+                 <div className={`w-full h-full absolute inset-0 ${fontConfig.class} pointer-events-none`}></div>
+
+                 {/* Background Pattern */}
+                 {themeConfig.pattern && (
+                    <div className={`absolute inset-0 pointer-events-none ${themeConfig.pattern}`}></div>
+                 )}
+
+                 {/* Inner Content Area */}
+                 <div className={`relative z-10 w-full h-full p-12 md:p-16 flex flex-col ${fontConfig.class}`}>
+                    
+                    {/* --- TITLE LAYOUT --- */}
+                    {slide.layout === 'title' && (
+                       <div className="h-full flex flex-col justify-center items-center text-center relative">
+                          <div className={`w-24 h-2 mb-8 ${themeConfig.accent}`}></div>
+                          <h1 className="text-5xl md:text-7xl font-black mb-8 uppercase leading-tight drop-shadow-sm max-w-4xl">
+                             {slide.title}
+                          </h1>
+                          <p className="text-xl md:text-2xl font-medium opacity-80 max-w-2xl mx-auto leading-relaxed">
+                             {slide.content}
+                          </p>
+                          <div className="mt-12 opacity-50 text-sm font-bold tracking-[0.2em] uppercase">
+                             PRESENTATION
+                          </div>
+                       </div>
+                    )}
+
+                    {/* --- SPLIT LAYOUT --- */}
+                    {slide.layout === 'split' && (
+                       <div className="h-full flex flex-col md:flex-row gap-12 items-center">
+                          <div className="w-full md:w-1/2 flex flex-col justify-center border-b md:border-b-0 md:border-e-4 border-current/10 pb-6 md:pb-0 md:pe-8 h-full">
+                             <h2 className="text-4xl md:text-5xl font-black mb-6 leading-tight">{slide.title}</h2>
+                             <p className="text-lg opacity-80 leading-relaxed">{slide.content}</p>
+                          </div>
+                          <div className="w-full md:w-1/2 flex flex-col justify-center h-full">
+                             <ul className="space-y-6">
+                                {slide.bulletPoints.map((bp, i) => (
+                                   <li key={i} className="flex items-start gap-4">
+                                      <div className={`mt-1.5 w-6 h-6 flex items-center justify-center ${themeConfig.accent} text-white font-bold text-xs rounded-full shrink-0`}>
+                                        {i+1}
+                                      </div>
+                                      <span className="font-bold text-lg md:text-xl opacity-90">{bp}</span>
+                                   </li>
+                                ))}
+                             </ul>
+                          </div>
+                       </div>
+                    )}
+
+                    {/* --- BULLET LAYOUT --- */}
+                    {slide.layout === 'bullet' && (
+                       <div className="h-full flex flex-col">
+                          <div className="flex justify-between items-end mb-8 border-b-4 border-current/10 pb-4">
+                             <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tight">{slide.title}</h2>
+                             <span className={`text-xl font-black opacity-30`}>0{index + 1}</span>
+                          </div>
+                          <div className="flex-grow flex gap-12">
+                             <div className="w-1/3 hidden md:block opacity-60 text-lg leading-relaxed">
+                                {slide.content}
+                             </div>
+                             <div className="w-full md:w-2/3 space-y-4">
+                                {slide.bulletPoints.map((bp, i) => (
+                                   <div key={i} className={`p-4 border-l-4 ${i % 2 === 0 ? 'border-current/50 bg-current/5' : 'border-transparent'}`}>
+                                      <span className="text-xl font-bold">{bp}</span>
+                                   </div>
+                                ))}
+                             </div>
+                          </div>
+                       </div>
+                    )}
+
+                    {/* --- FOCUS / CENTER LAYOUT (Replaces Image Center) --- */}
+                    {slide.layout === 'focus' && (
+                       <div className="h-full flex flex-col justify-center items-center text-center">
+                          <div className="mb-4 text-sm font-bold tracking-widest uppercase opacity-50">{slide.title}</div>
+                          <div className="flex flex-wrap justify-center gap-6 mb-8">
+                             {slide.bulletPoints.map((bp, i) => (
+                                <div key={i} className={`px-6 py-4 ${themeConfig.accent} text-white font-bold text-lg shadow-lg transform hover:-translate-y-1 transition-transform`}>
+                                   {bp}
+                                </div>
+                             ))}
+                          </div>
+                          <p className="text-2xl font-light leading-relaxed max-w-3xl opacity-90 border-t-2 border-current/20 pt-8">
+                             {slide.content}
+                          </p>
+                       </div>
+                    )}
+
+                    {/* --- QUOTE LAYOUT --- */}
+                    {slide.layout === 'quote' && (
+                       <div className="h-full flex flex-col justify-center items-center text-center relative z-10">
+                          <div className="text-[120px] leading-none opacity-10 font-serif absolute top-0 left-8">“</div>
+                          <h2 className="text-3xl md:text-6xl font-black italic leading-tight mb-12 max-w-5xl relative z-10">
+                             {slide.content}
+                          </h2>
+                          <div className="flex items-center gap-4">
+                             <div className={`h-1 w-12 ${themeConfig.accent}`}></div>
+                             <p className="text-xl font-bold uppercase tracking-widest opacity-70">{slide.title}</p>
+                             <div className={`h-1 w-12 ${themeConfig.accent}`}></div>
+                          </div>
+                       </div>
+                    )}
+
+                 </div>
+              </div>
             </div>
-
-            {/* THE SLIDE (16:9 Aspect Ratio Container) */}
-            <div className={`relative w-full aspect-video shadow-2xl overflow-hidden transform transition-transform duration-300 hover:scale-[1.01] ${themeConfig.previewClass}`}>
-               
-               {/* Background Elements based on theme */}
-               {theme === 'tech' && <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-500 via-slate-900 to-slate-900"></div>}
-               {theme === 'nature' && <div className="absolute bottom-0 right-0 w-64 h-64 bg-green-200/20 rounded-full blur-3xl"></div>}
-               {theme === 'lux' && <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent"></div>}
-
-               {/* Inner Content Area with Padding */}
-               <div className="relative z-10 w-full h-full p-12 flex flex-col">
-                  
-                  {/* --- LAYOUT LOGIC --- */}
-                  
-                  {slide.layout === 'title' && (
-                     <div className="h-full flex flex-col justify-center items-center text-center relative">
-                        {/* Background Image Layer */}
-                        <div className="absolute inset-0 z-0">
-                           <img 
-                              src={getAIImageUrl(slide.imagePrompt, index)} 
-                              alt="Background" 
-                              className={`w-full h-full object-cover ${theme === 'neo' ? 'opacity-10 mix-blend-multiply' : 'opacity-30 mix-blend-overlay'}`} 
-                            />
-                           {theme !== 'neo' && <div className={`absolute inset-0 ${theme === 'lux' ? 'bg-black/80' : 'bg-slate-900/60'}`}></div>}
-                        </div>
-                        
-                        <div className="relative z-10 max-w-4xl">
-                           <span className={`inline-block px-3 py-1 mb-6 text-xs font-bold tracking-[0.2em] uppercase border ${theme === 'neo' ? 'border-black text-black' : 'border-current opacity-70'}`}>
-                              Presentation Deck
-                           </span>
-                           <h1 className="text-5xl md:text-7xl font-black mb-6 uppercase leading-tight drop-shadow-lg">
-                              {slide.title}
-                           </h1>
-                           <div className={`w-24 h-1 mx-auto mb-8 ${themeConfig.accent}`}></div>
-                           <p className="text-xl md:text-2xl font-medium opacity-90 max-w-2xl mx-auto leading-relaxed">
-                              {slide.content}
-                           </p>
-                        </div>
-                     </div>
-                  )}
-
-                  {slide.layout === 'split' && (
-                     <div className="h-full flex gap-8 items-center">
-                        <div className="w-1/2 h-full flex flex-col justify-center">
-                           <h2 className={`text-4xl font-bold mb-6 uppercase leading-none ${theme === 'gradient' ? 'text-white/90' : ''}`}>{slide.title}</h2>
-                           <p className="text-lg mb-8 opacity-80 leading-relaxed">{slide.content}</p>
-                           <ul className="space-y-4">
-                              {slide.bulletPoints.map((bp, i) => (
-                                 <li key={i} className="flex items-center gap-3">
-                                    <div className={`w-2 h-2 ${themeConfig.accent} rounded-full`}></div>
-                                    <span className="font-semibold opacity-90">{bp}</span>
-                                 </li>
-                              ))}
-                           </ul>
-                        </div>
-                        <div className="w-1/2 h-full relative p-4">
-                           <div className={`w-full h-full relative overflow-hidden ${theme === 'neo' ? 'border-4 border-black shadow-neo-sm' : 'rounded-lg shadow-xl'}`}>
-                              <img src={getAIImageUrl(slide.imagePrompt, index)} className="w-full h-full object-cover" />
-                           </div>
-                        </div>
-                     </div>
-                  )}
-
-                  {(slide.layout === 'bullet' || slide.layout === 'image-center') && (
-                     <div className="h-full flex flex-col">
-                        <div className="flex justify-between items-end mb-8 border-b border-current/20 pb-4">
-                           <h2 className="text-4xl font-bold uppercase tracking-tight">{slide.title}</h2>
-                           <span className={`text-xs font-bold px-2 py-1 ${themeConfig.accent} ${theme === 'neo' ? 'text-black' : 'text-white'}`}>{index + 1}</span>
-                        </div>
-                        <div className="flex-grow flex gap-8">
-                           <div className="w-2/3 pr-8">
-                              <p className="text-xl mb-8 font-medium leading-relaxed opacity-90">{slide.content}</p>
-                              <div className="grid grid-cols-1 gap-4">
-                                 {slide.bulletPoints.map((bp, i) => (
-                                    <div key={i} className={`p-4 flex items-center gap-4 ${theme === 'neo' ? 'bg-white border-2 border-black' : 'bg-white/5 border-l-4 border-current/50'}`}>
-                                       <span className="text-2xl font-black opacity-30">{i+1}</span>
-                                       <span className="text-lg font-bold">{bp}</span>
-                                    </div>
-                                 ))}
-                              </div>
-                           </div>
-                           <div className="w-1/3 relative">
-                               <div className={`absolute inset-0 ${theme === 'neo' ? 'border-4 border-black bg-neo-pink' : 'rounded-lg overflow-hidden'}`}>
-                                  <img src={getAIImageUrl(slide.imagePrompt, index)} className="w-full h-full object-cover mix-blend-normal hover:scale-110 transition-transform duration-700" />
-                               </div>
-                           </div>
-                        </div>
-                     </div>
-                  )}
-
-                  {slide.layout === 'quote' && (
-                     <div className="h-full flex flex-col justify-center items-center text-center relative z-10">
-                        <div className="text-[120px] leading-none opacity-20 font-serif absolute top-10 left-10">“</div>
-                        <h2 className="text-4xl md:text-5xl font-black italic leading-tight mb-10 max-w-4xl relative z-10">
-                           {slide.content}
-                        </h2>
-                        <div className={`h-1 w-20 ${themeConfig.accent} mb-6`}></div>
-                        <p className="text-xl font-bold uppercase tracking-widest opacity-60">{slide.title}</p>
-                     </div>
-                  )}
-
-               </div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -315,6 +395,7 @@ const SlideWorkspace: React.FC<{ slides: Slide[]; theme: Theme }> = ({ slides, t
 const Generator: React.FC = () => {
   const [inputText, setInputText] = useState('');
   const [selectedTheme, setSelectedTheme] = useState<Theme>('tech');
+  const [selectedFont, setSelectedFont] = useState<FontKey>('tajawal');
   const [generationMode, setGenerationMode] = useState<'strict' | 'creative'>('creative');
   const [slideCount, setSlideCount] = useState<number>(6);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -364,7 +445,7 @@ const Generator: React.FC = () => {
            >
              <ChevronLeft size={20} /> Back to Editor
            </button>
-           <SlideWorkspace slides={slides} theme={selectedTheme} />
+           <SlideWorkspace slides={slides} theme={selectedTheme} font={selectedFont} />
         </div>
       ) : (
         <div className="max-w-7xl mx-auto px-4 py-8 md:py-16">
@@ -374,21 +455,45 @@ const Generator: React.FC = () => {
             <div className="lg:col-span-4 space-y-8">
               <div className="bg-white dark:bg-slate-800 p-6 border-4 border-black dark:border-white shadow-neo dark:shadow-neo-white">
                 
+                {/* Font Selector */}
+                <h2 className="text-lg font-black mb-4 uppercase flex items-center gap-2">
+                   <TypeIcon size={18} /> Typography (الخط)
+                </h2>
+                <div className="relative mb-4">
+                  <select 
+                    value={selectedFont}
+                    onChange={(e) => setSelectedFont(e.target.value as FontKey)}
+                    className="w-full p-3 bg-slate-100 border-2 border-slate-300 font-bold text-sm focus:border-black appearance-none cursor-pointer"
+                  >
+                    {Object.entries(FONTS).map(([key, config]) => (
+                      <option key={key} value={key}>{config.name}</option>
+                    ))}
+                  </select>
+                  <div className="absolute right-4 top-4 pointer-events-none">
+                     <ChevronRight size={16} className="rotate-90" />
+                  </div>
+                </div>
+                {/* Font Preview Box */}
+                <div className={`w-full p-4 mb-8 bg-slate-50 border border-slate-200 text-center ${FONTS[selectedFont].class}`}>
+                   <p className="text-lg">مثال على الخط</p>
+                   <p className="text-sm opacity-70">The quick brown fox jumps.</p>
+                </div>
+
                 {/* Theme Selector */}
                 <h2 className="text-lg font-black mb-4 uppercase flex items-center gap-2">
-                   <Palette size={18} /> Presentation Style
+                   <Palette size={18} /> Visual Style
                 </h2>
-                <div className="grid grid-cols-2 gap-3 mb-8">
+                <div className="grid grid-cols-2 gap-3 mb-8 max-h-[240px] overflow-y-auto pr-2 custom-scrollbar">
                    {Object.entries(THEMES).map(([key, config]) => (
                      <button
                        key={key}
                        onClick={() => setSelectedTheme(key as Theme)}
-                       className={`p-2 text-left border-2 transition-all flex flex-col gap-2 ${selectedTheme === key ? 'border-black dark:border-white bg-slate-100 dark:bg-slate-700 ring-1 ring-black dark:ring-white' : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+                       className={`p-1.5 text-left border-2 transition-all flex flex-col gap-2 ${selectedTheme === key ? 'border-black dark:border-white ring-2 ring-neo-pink' : 'border-transparent hover:bg-slate-100 dark:hover:bg-slate-700'}`}
                      >
-                        <div className={`w-full h-6 ${config.bg} border border-slate-300 relative overflow-hidden shadow-sm`}>
-                           <div className={`absolute top-0 right-0 w-3 h-full ${config.accent}`}></div>
+                        <div className={`w-full h-10 ${config.bg} border border-slate-200 relative overflow-hidden shadow-sm flex items-center justify-center`}>
+                           <div className={`w-4 h-4 rounded-full ${config.accent}`}></div>
                         </div>
-                        <span className="text-[10px] font-bold uppercase truncate w-full block">{config.name}</span>
+                        <span className="text-[10px] font-bold uppercase truncate w-full block text-center">{config.name}</span>
                      </button>
                    ))}
                 </div>
@@ -445,9 +550,8 @@ const Generator: React.FC = () => {
                        </div>
                        <h3 className="text-4xl font-black uppercase animate-pulse mb-4">Forging Deck</h3>
                        <p className="text-slate-500 font-bold uppercase tracking-widest text-sm">
-                          Thinking: {generationMode} Mode <br/>
                           Generating {slideCount} Slides <br/>
-                          Designing "{THEMES[selectedTheme].name}" Style
+                          Applying "{THEMES[selectedTheme].name}" Style
                        </p>
                     </div>
                   ) : (
@@ -455,13 +559,14 @@ const Generator: React.FC = () => {
                       <h2 className="text-3xl font-black mb-6 uppercase flex items-center gap-2">
                          <LayoutIcon size={28} /> Content Source
                       </h2>
-                      <p className="text-slate-500 mb-4">Paste your topic, notes, or full report below. We will structure it into a {slideCount}-slide presentation.</p>
+                      <p className="text-slate-500 mb-4">Paste your topic, notes, or full report below. Supports Arabic & English.</p>
                       
                       <textarea 
                         value={inputText}
                         onChange={(e) => setInputText(e.target.value)}
-                        placeholder="e.g. A pitch deck for a new AI startup focused on sustainable energy. Include market size, problem, solution, and business model..."
+                        placeholder="أدخل النص هنا... (e.g. A pitch deck for a new AI startup...)"
                         className="w-full flex-grow min-h-[300px] p-6 border-2 border-black bg-slate-50 focus:outline-none focus:ring-4 focus:ring-neo-yellow/50 font-medium text-lg resize-none mb-6 transition-all"
+                        dir={isArabic(inputText) ? 'rtl' : 'ltr'}
                       />
                       
                       <div className="flex flex-col sm:flex-row gap-4">
@@ -503,9 +608,9 @@ const About: React.FC = () => (
     
     <div className="grid md:grid-cols-3 gap-8">
       {[
-        { step: '01', title: 'Input', desc: 'Paste your text or upload a file containing your raw content.' },
-        { step: '02', title: 'Process', desc: 'Our AI engine analyzes structure, key points, and tone.' },
-        { step: '03', title: 'Design', desc: 'Content is mapped to bold, neo-brutalist layouts automatically.' }
+        { step: '01', title: 'Input', desc: 'Paste your text or upload a file.' },
+        { step: '02', title: 'Process', desc: 'AI analyzes content and structure.' },
+        { step: '03', title: 'Design', desc: 'Automated typography and layout generation.' }
       ].map((item) => (
         <div key={item.step} className="bg-white dark:bg-slate-900 p-8 border-4 border-black dark:border-white shadow-neo dark:shadow-neo-white relative">
           <div className="absolute -top-6 -left-2 bg-neo-pink text-black px-4 py-1 font-bold border-2 border-black">{item.step}</div>

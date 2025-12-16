@@ -3,35 +3,40 @@ import { Slide } from '../types';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-const SYSTEM_INSTRUCTION = `
-You are a top-tier Presentation Designer. Your goal is to create structured content for slide decks.
+export const generateSlides = async (input: string, mode: 'strict' | 'creative', slideCount: number): Promise<Slide[]> => {
+  
+  const SYSTEM_INSTRUCTION = `
+You are an expert Presentation Designer.
 
+**CRITICAL RULE: LANGUAGE CONSISTENCY**
+- Detect the language of the user's input.
+- If the input is in **Arabic**, ALL generated content (title, content, bulletPoints) MUST be in **Arabic**.
+- If the input is in **English**, use **English**.
+
+**Output Structure:**
 Output a JSON object with a "slides" array.
 Each slide must have:
 - title (string): Short, impactful title.
-- content (string): Concise body text (max 2 sentences).
-- bulletPoints (string array): 3-5 short, punchy points.
-- layout (enum): "title", "bullet", "split", "quote", "image-center".
-- imagePrompt (string): A detailed visual description for an AI image generator. Describe the scene, lighting, mood, and objects. NO TEXT in the image prompt.
+- content (string): Concise body text, max 30 words.
+- bulletPoints (string array): 3-5 short points.
+- layout (enum): "title", "bullet", "split", "quote", "focus".
 
-Modes:
-- STRICT: Summarize the user's input exactly.
-- CREATIVE: Expand, explain, and add value to the content.
+**Modes:**
+- STRICT: Stick exactly to the user's provided text.
+- CREATIVE: Expand and add value, making the presentation engaging.
 `;
 
-export const generateSlides = async (input: string, mode: 'strict' | 'creative', slideCount: number): Promise<Slide[]> => {
   try {
     const prompt = `Create a ${slideCount}-slide presentation.
-    Topic/Content: "${input}". 
+    Topic: "${input}". 
     Mode: ${mode.toUpperCase()}.
     
     Structure:
     1. Title Slide
-    2. Introduction
-    ... (body slides)
-    ${slideCount}. Conclusion/Call to Action
+    2. Body Slides (varied layouts to keep it interesting)
+    ${slideCount}. Conclusion
     
-    Ensure variety in layouts.`;
+    Make sure the text is concise and fits on a slide. Focus on strong typography.`;
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
@@ -55,11 +60,10 @@ export const generateSlides = async (input: string, mode: 'strict' | 'creative',
                   },
                   layout: { 
                     type: Type.STRING,
-                    description: 'One of: "title", "bullet", "split", "quote", "image-center"'
-                  },
-                  imagePrompt: { type: Type.STRING }
+                    description: 'One of: "title", "bullet", "split", "quote", "focus"'
+                  }
                 },
-                required: ["title", "content", "bulletPoints", "layout", "imagePrompt"]
+                required: ["title", "content", "bulletPoints", "layout"]
               }
             }
           },
@@ -85,11 +89,10 @@ export const generateSlides = async (input: string, mode: 'strict' | 'creative',
     console.error("Gemini API Error:", error);
     return [
       {
-        title: "Error Occurred",
-        content: error?.message || "Failed to reach the AI service.",
-        bulletPoints: ["Check connection", "Verify API Key", "Try again"],
-        layout: "title",
-        imagePrompt: "glitch art error warning red"
+        title: "Error / خطأ",
+        content: "Could not generate content. Please try again. / تعذر إنشاء المحتوى.",
+        bulletPoints: ["Check API Key", "Check Connection"],
+        layout: "title"
       }
     ] as Slide[];
   }
@@ -101,12 +104,12 @@ export const sendMessageToGemini = async (userMessage: string): Promise<string> 
       model: "gemini-2.5-flash",
       contents: userMessage,
       config: {
-        systemInstruction: "You are NeoDeck's helpful assistant. Keep answers short and punchy."
+        systemInstruction: "You are NeoDeck's helpful assistant. If the user asks in Arabic, reply in Arabic. Keep answers short."
       }
     });
     return response.text || "Processing...";
   } catch (error) {
     console.error(error);
-    return "Offline mode.";
+    return "Service unavailable.";
   }
 };

@@ -3,9 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>IEEE Student Branch Portal</title>
+    <title>NeoDeck AI - Presentation Generator</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Cairo:wght@400;600;700;900&family=Amiri:wght@400;700&family=Tajawal:wght@400;500;700&family=Playfair+Display:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script>
       // CRITICAL FIX: Define process.env to prevent crashes in libraries expecting Node.js environment
       // This runs before any module imports to ensure compatibility.
@@ -16,13 +16,18 @@
         theme: {
           extend: {
             fontFamily: {
-              sans: ['Space Grotesk', 'Inter', 'sans-serif'], // Switched to Space Grotesk for a more "tech/neo" vibe
-              body: ['Inter', 'sans-serif'],
+              sans: ['Inter', 'sans-serif'],
+              serif: ['Playfair Display', 'serif'],
+              mono: ['Roboto Mono', 'monospace'],
+              cairo: ['Cairo', 'sans-serif'], 
+              amiri: ['Amiri', 'serif'],
+              tajawal: ['Tajawal', 'sans-serif'],
+              grotesk: ['Space Grotesk', 'sans-serif'],
             },
             colors: {
               ieee: {
                 blue: '#00629B',
-                dark: '#000000', // Neo-brutalism loves pure black
+                dark: '#000000',
                 light: '#E0F2FE'
               },
               neo: {
@@ -59,9 +64,8 @@
 }
 </script>
 </head>
-  <body class="bg-yellow-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100 transition-colors duration-200 selection:bg-black selection:text-white dark:selection:bg-white dark:selection:text-black">
+  <body class="bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100 transition-colors duration-200">
     <div id="root"></div>
-    <!-- CRITICAL: Entry point script was missing. This loads the React App. -->
     <script type="module" src="./index.tsx"></script>
   </body>
 </html>
