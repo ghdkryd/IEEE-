@@ -1,30 +1,17 @@
-export interface Event {
-  id: string;
+export interface Slide {
   title: string;
-  date: string;
-  description: string;
-  location: string;
-  image: string;
-  category: 'Workshop' | 'Seminar' | 'Social' | 'Competition';
+  content: string;
+  bulletPoints: string[];
+  layout: 'title' | 'bullet' | 'split' | 'quote';
+  imagePrompt?: string; // Optional prompt for an image if we were to generate one
 }
 
-export interface TeamMember {
-  id: string;
+export interface NavigationItem {
   name: string;
-  role: string;
-  bio: string;
-  image: string;
-  committee: 'Board' | 'Technical' | 'Media' | 'HR';
+  path: string;
 }
 
-export interface Project {
-  id: string;
-  title: string;
-  description: string;
-  image: string;
-  outcome: string;
-}
-
+// Keeping these for legacy compatibility if needed, though they aren't used in the new flow
 export interface BlogPost {
   id: string;
   title: string;
@@ -32,9 +19,4 @@ export interface BlogPost {
   date: string;
   author: string;
   category: string;
-}
-
-export interface NavigationItem {
-  name: string;
-  path: string;
 }
