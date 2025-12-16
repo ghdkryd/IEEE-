@@ -7,6 +7,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script>
+      // CRITICAL FIX: Define process.env to prevent crashes in libraries expecting Node.js environment
+      // This runs before any module imports to ensure compatibility.
+      window.process = { env: {} };
+
       tailwind.config = {
         darkMode: 'class',
         theme: {
