@@ -89,7 +89,7 @@ const Footer: React.FC = () => (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex flex-col md:flex-row justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400">
         <p>&copy; {new Date().getFullYear()} NeoDeck AI.</p>
-        <p className="bg-neo-yellow text-black px-2 mt-4 md:mt-0 border-2 border-black">Powered by Gemini 2.5 Flash</p>
+        <p className="bg-neo-yellow text-black px-2 mt-4 md:mt-0 border-2 border-black">Powered by Groq & Llama 3</p>
       </div>
     </div>
   </footer>
@@ -352,7 +352,7 @@ const About: React.FC = () => (
     <div className="grid md:grid-cols-3 gap-8">
       {[
         { step: '01', title: 'Input', desc: 'Paste your text or upload a file containing your raw content.' },
-        { step: '02', title: 'Process', desc: 'Our Gemini-powered engine analyzes structure, key points, and tone.' },
+        { step: '02', title: 'Process', desc: 'Our AI engine analyzes structure, key points, and tone.' },
         { step: '03', title: 'Design', desc: 'Content is mapped to bold, neo-brutalist layouts automatically.' }
       ].map((item) => (
         <div key={item.step} className="bg-white dark:bg-slate-900 p-8 border-4 border-black dark:border-white shadow-neo dark:shadow-neo-white relative">

@@ -1,57 +1,74 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import Groq from "groq-sdk";
 import { Slide } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Initialize Groq with browser permission enabled
+// This fixes the "Black Screen" issue when running client-side
+const groq = new Groq({ 
+  apiKey: process.env.API_KEY, 
+  dangerouslyAllowBrowser: true 
+});
 
 const SYSTEM_INSTRUCTION = `
 You are a presentation expert. Your job is to take raw text or a topic and convert it into a structural JSON for a slide deck.
 The design style is Neo-Brutalism, so the copy should be punchy, direct, and bold.
+
+You must output a valid JSON object with a single key "slides" containing an array of slide objects.
+Each slide object must have:
+- title (string)
+- content (string)
+- bulletPoints (array of strings)
+- layout (one of: "title", "bullet", "split", "quote")
+
+Example JSON:
+{
+  "slides": [
+    {
+      "title": "NEO DESIGN",
+      "content": "Bold shadows and high contrast.",
+      "bulletPoints": ["Stark borders", "Vibrant colors"],
+      "layout": "split"
+    }
+  ]
+}
 `;
 
 export const generateSlides = async (input: string): Promise<Slide[]> => {
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: `Create a 5-slide presentation based on the following content: "${input}". 
-      Ensure the first slide is a Title slide. 
-      Make the content engaging and concise.`,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              title: { type: Type.STRING },
-              content: { type: Type.STRING },
-              bulletPoints: { 
-                type: Type.ARRAY,
-                items: { type: Type.STRING }
-              },
-              layout: { 
-                type: Type.STRING,
-                enum: ["title", "bullet", "split", "quote"]
-              }
-            },
-            required: ["title", "content", "bulletPoints", "layout"]
-          }
+    const completion = await groq.chat.completions.create({
+      messages: [
+        { role: "system", content: SYSTEM_INSTRUCTION },
+        { 
+          role: "user", 
+          content: `Create a 5-slide presentation for this content: "${input}". Ensure the first slide is a Title slide.` 
         }
-      }
+      ],
+      model: "llama3-70b-8192",
+      response_format: { type: "json_object" }
     });
 
-    if (response.text) {
-      return JSON.parse(response.text) as Slide[];
+    const content = completion.choices[0]?.message?.content;
+    
+    if (content) {
+      try {
+        const parsed = JSON.parse(content);
+        // Handle both direct array or wrapped object
+        if (parsed.slides && Array.isArray(parsed.slides)) {
+          return parsed.slides;
+        } else if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      } catch (e) {
+        console.error("Failed to parse JSON", e);
+      }
     }
-    throw new Error("No content generated");
+    throw new Error("Invalid content generated");
   } catch (error) {
-    console.error("Gemini API Error:", error);
-    // Return a fallback slide deck in case of error
+    console.error("Groq API Error:", error);
     return [
       {
-        title: "Error Generating Deck",
-        content: "We encountered an issue connecting to the AI brain.",
-        bulletPoints: ["Check your connection", "Try a shorter prompt", "Try again later"],
+        title: "Connection Error",
+        content: "Failed to reach the Groq Cloud.",
+        bulletPoints: ["Check API Key", "Verify Network", "Try again"],
         layout: "title"
       }
     ];
@@ -60,14 +77,14 @@ export const generateSlides = async (input: string): Promise<Slide[]> => {
 
 export const sendMessageToGemini = async (userMessage: string): Promise<string> => {
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: userMessage,
-      config: {
-        systemInstruction: "You are NeoDeck's helpful assistant. Help users formatting their text for presentations.",
-      }
+    const completion = await groq.chat.completions.create({
+      messages: [
+        { role: "system", content: "You are NeoDeck's helpful assistant. Keep answers short and punchy." },
+        { role: "user", content: userMessage }
+      ],
+      model: "llama3-70b-8192"
     });
-    return response.text || "I'm thinking...";
+    return completion.choices[0]?.message?.content || "Processing...";
   } catch (error) {
     console.error(error);
     return "Offline mode.";
