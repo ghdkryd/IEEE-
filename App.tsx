@@ -1,10 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { HashRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Menu, X, Moon, Sun, Download, ChevronRight, ChevronLeft, Upload, Play, Copy, RefreshCw, Palette, Layout as LayoutIcon, Sparkles, FileText, Zap, Monitor, Layers, Type as TypeIcon } from 'lucide-react';
+import { Menu, X, Moon, Sun, Download, ChevronRight, ChevronLeft, Upload, Play, Copy, RefreshCw, Palette, Layout as LayoutIcon, Sparkles, FileText, Zap, Monitor, Layers, Type as TypeIcon, Save, FolderOpen, Loader2 } from 'lucide-react';
+import * as pdfjsLib from 'pdfjs-dist';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import { NAV_ITEMS, MISSION } from './constants';
 import { ChatAssistant } from './components/ChatAssistant';
 import { generateSlides } from './services/geminiService';
 import { Slide, Theme, FontKey } from './types';
+
+// Initialize PDF Worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://esm.sh/pdfjs-dist@3.11.174/build/pdf.worker.min.mjs`;
 
 // --- Helper: Detect Arabic ---
 const isArabic = (text: string) => {
@@ -202,34 +208,141 @@ const Footer: React.FC = () => (
 const SlideWorkspace: React.FC<{ slides: Slide[]; theme: Theme; font: FontKey }> = ({ slides, theme, font }) => {
   const themeConfig = THEMES[theme];
   const fontConfig = FONTS[font];
+  const [isDownloading, setIsDownloading] = useState(false);
 
-  const handleExportPDF = () => {
-    const originalTitle = document.title;
-    // Set a clean filename for the PDF export
-    document.title = `NeoDeck_Presentation_${new Date().toISOString().split('T')[0]}`;
-    window.print();
-    // Revert title after a moment so the app title returns to normal
-    setTimeout(() => {
-        document.title = originalTitle;
-    }, 500);
+  // Optimized PDF Export for High Fidelity and Arabic Support
+  const handleExportPDF = async () => {
+    setIsDownloading(true);
+    
+    try {
+      // 0. Ensure fonts are loaded to prevent layout shifts
+      await document.fonts.ready;
+
+      // 1. Setup PDF document (Landscape, Pixels, exact 1280x720 dimension)
+      // This ensures 1:1 mapping with the canvas we create
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'px',
+        format: [1280, 720] 
+      });
+
+      // 2. Create a hidden container for fixed-resolution rendering
+      // This solves the "text clumping" issue by forcing a desktop layout (1280px wide)
+      // regardless of the user's current screen size.
+      const exportContainer = document.createElement('div');
+      exportContainer.style.position = 'fixed';
+      exportContainer.style.top = '0';
+      exportContainer.style.left = '-10000px'; // Off-screen
+      exportContainer.style.width = '1280px';
+      exportContainer.style.height = '720px';
+      exportContainer.style.zIndex = '-1';
+      document.body.appendChild(exportContainer);
+      
+      const slideElements = document.querySelectorAll('.slide-page');
+      
+      for (let i = 0; i < slideElements.length; i++) {
+        const sourceSlide = slideElements[i] as HTMLElement;
+        
+        // 3. Clone the slide into the fixed container
+        const clonedSlide = sourceSlide.cloneNode(true) as HTMLElement;
+        
+        // Force dimensions and remove potential interfering transforms
+        clonedSlide.style.width = '1280px';
+        clonedSlide.style.height = '720px';
+        clonedSlide.style.transform = 'none';
+        clonedSlide.style.margin = '0';
+        clonedSlide.style.boxShadow = 'none';
+        
+        // Clear the export container and add the new clone
+        exportContainer.innerHTML = '';
+        exportContainer.appendChild(clonedSlide);
+
+        // 4. Capture using html2canvas with specific settings for quality & text
+        const canvas = await html2canvas(clonedSlide, {
+          scale: 2, // 2x Scale for crisp text (effective resolution 2560x1440)
+          useCORS: true,
+          logging: false,
+          allowTaint: true,
+          backgroundColor: null,
+          // CSS tweak to fix Arabic text clumping in some browsers
+          onclone: (clonedDoc, element) => {
+             element.style.letterSpacing = 'normal';
+             element.style.fontVariantLigatures = 'normal';
+          }
+        });
+        
+        // 5. Add image to PDF
+        const imgData = canvas.toDataURL('image/jpeg', 0.95); // High quality JPEG
+        
+        if (i > 0) {
+          pdf.addPage([1280, 720], 'landscape');
+        }
+        
+        pdf.addImage(imgData, 'JPEG', 0, 0, 1280, 720);
+      }
+
+      // Cleanup
+      document.body.removeChild(exportContainer);
+      
+      // 6. Save file
+      const dateStr = new Date().toISOString().split('T')[0];
+      pdf.save(`NeoDeck_Presentation_${dateStr}.pdf`);
+      
+    } catch (error) {
+      console.error("PDF Export failed:", error);
+      alert("Failed to export PDF. Please try again.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleSaveProject = () => {
+    const data = JSON.stringify({ slides, theme, font, version: '1.0' }, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `neodeck-project-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   return (
     <div className="w-full min-h-screen flex flex-col items-center bg-[#18181b] relative print:bg-white print:block">
       
       {/* Top Bar - Hidden on Print */}
-      <div className="w-full bg-[#27272a] text-white p-4 flex justify-between items-center border-b border-[#3f3f46] sticky top-20 z-30 shadow-md no-print">
+      <div className="w-full bg-[#27272a] text-white p-4 flex flex-col sm:flex-row justify-between items-center border-b border-[#3f3f46] sticky top-20 z-30 shadow-md gap-4 no-print">
         <div className="flex items-center gap-3">
            <Monitor size={20} className="text-blue-400" />
            <span className="font-bold text-sm tracking-wide hidden sm:inline">WORKSPACE VIEW</span>
            <span className="bg-blue-600 text-[10px] px-2 py-0.5 rounded font-bold">{slides.length} SLIDES</span>
         </div>
-        <button 
-          onClick={handleExportPDF} 
-          className="flex items-center gap-2 px-6 py-2 bg-neo-green hover:bg-green-300 text-black text-xs font-bold uppercase border-2 border-transparent hover:border-black rounded-none transition-all shadow-neo-sm hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px]"
-        >
-          <Download size={16} /> Export as PDF
-        </button>
+        
+        <div className="flex items-center gap-3">
+           <button 
+            onClick={handleSaveProject} 
+            className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold uppercase border-2 border-transparent rounded hover:border-white transition-all"
+            title="Save Project File (Editable)"
+          >
+            <Save size={16} /> Save Project
+          </button>
+          
+          <button 
+            onClick={handleExportPDF} 
+            disabled={isDownloading}
+            className="flex items-center gap-2 px-6 py-2 bg-neo-green hover:bg-green-300 text-black text-xs font-bold uppercase border-2 border-transparent hover:border-black rounded-none transition-all shadow-neo-sm hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] disabled:opacity-50 disabled:cursor-wait"
+            title="Export as PDF"
+          >
+            {isDownloading ? (
+               <Loader2 size={16} className="animate-spin" /> 
+            ) : (
+               <Download size={16} /> 
+            )}
+            {isDownloading ? 'Rendering PDF...' : 'Download PDF'}
+          </button>
+        </div>
       </div>
 
       {/* Slide Canvas - Print Container */}
@@ -389,19 +502,70 @@ const Generator: React.FC = () => {
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.type === 'text/plain') {
-        const reader = new FileReader();
-        reader.onload = (e) => {
+    if (!file) return;
+
+    if (file.type === 'application/pdf') {
+       setInputText("Reading PDF... Please wait.");
+       try {
+          const arrayBuffer = await file.arrayBuffer();
+          // Load PDF document
+          const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+          const pdf = await loadingTask.promise;
+          let fullText = '';
+          
+          // Safety limit: only read first 20 pages to prevent freezing on large books
+          const maxPages = Math.min(pdf.numPages, 20);
+
+          for (let i = 1; i <= maxPages; i++) {
+             const page = await pdf.getPage(i);
+             const textContent = await page.getTextContent();
+             // Join text items with space, add newlines between pages
+             const pageText = textContent.items.map((item: any) => item.str).join(' ');
+             fullText += `--- Page ${i} ---\n${pageText}\n\n`;
+          }
+          
+          if (pdf.numPages > 20) {
+             fullText += `\n[...PDF truncated after 20 pages...]`;
+          }
+
+          setInputText(fullText);
+       } catch (error) {
+          console.error("PDF Parsing Error:", error);
+          setInputText("Error reading PDF. Please try a different file or copy/paste the text directly.");
+       }
+    } else if (file.type === 'application/json' || file.name.endsWith('.json')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+         const text = e.target?.result;
+         if (typeof text === 'string') {
+            try {
+               const data = JSON.parse(text);
+               if (data.slides) {
+                  setSlides(data.slides);
+                  if (data.theme) setSelectedTheme(data.theme);
+                  if (data.font) setSelectedFont(data.font);
+               } else {
+                  alert("Invalid project file");
+               }
+            } catch (err) {
+               alert("Error loading project file");
+            }
+         }
+      };
+      reader.readAsText(file);
+    } else if (file.type === 'text/plain') {
+       const reader = new FileReader();
+       reader.onload = (e) => {
           const text = e.target?.result;
           if (typeof text === 'string') {
              setInputText(text);
           }
-        };
-        reader.readAsText(file);
-      }
+       };
+       reader.readAsText(file);
+    } else {
+       alert("Please upload a .PDF, .TXT, or .JSON file.");
     }
   };
 
@@ -543,8 +707,8 @@ const Generator: React.FC = () => {
                       <div className="flex flex-col sm:flex-row gap-4">
                          <div className="flex-1">
                             <label className="flex items-center justify-center w-full h-full p-4 bg-slate-100 border-2 border-dashed border-slate-300 cursor-pointer hover:bg-slate-200 transition-all text-sm font-bold uppercase text-slate-500 gap-2">
-                               <Upload size={18} /> Upload .TXT
-                               <input type="file" onChange={handleFileUpload} className="hidden" />
+                               <Upload size={18} /> Upload PDF / JSON
+                               <input type="file" onChange={handleFileUpload} className="hidden" accept=".txt,.pdf,.json" />
                             </label>
                          </div>
                          <button 
@@ -567,97 +731,51 @@ const Generator: React.FC = () => {
   );
 };
 
-const About: React.FC = () => (
-  <div className="max-w-4xl mx-auto px-4 py-16">
-    <div className="text-center mb-16">
-      <h1 className="text-6xl font-bold text-black dark:text-white mb-6 uppercase tracking-tighter">How It Works</h1>
-      <div className="w-full h-1 bg-black dark:bg-white mb-8"></div>
-      <p className="text-2xl font-bold text-slate-700 dark:text-slate-300 leading-relaxed font-sans">
-        {MISSION}
-      </p>
-    </div>
-    
-    <div className="grid md:grid-cols-3 gap-8">
-      {[
-        { step: '01', title: 'Input', desc: 'Paste your text or upload a file.' },
-        { step: '02', title: 'Process', desc: 'AI analyzes content and structure.' },
-        { step: '03', title: 'Design', desc: 'Automated typography and layout generation.' }
-      ].map((item) => (
-        <div key={item.step} className="bg-white dark:bg-slate-900 p-8 border-4 border-black dark:border-white shadow-neo dark:shadow-neo-white relative">
-          <div className="absolute -top-6 -left-2 bg-neo-pink text-black px-4 py-1 font-bold border-2 border-black">{item.step}</div>
-          <h2 className="text-3xl font-bold text-black dark:text-white mb-4 mt-2 uppercase">{item.title}</h2>
-          <p className="text-slate-700 dark:text-slate-300 font-medium">{item.desc}</p>
-        </div>
-      ))}
-    </div>
-  </div>
-);
+const App: React.FC = () => {
+  const [darkMode, setDarkMode] = useState(false);
 
-const Contact: React.FC = () => (
-   <div className="max-w-3xl mx-auto px-4 py-16">
-      <div className="bg-white dark:bg-slate-900 p-8 border-4 border-black dark:border-white shadow-neo-lg dark:shadow-neo-white">
-        <h1 className="text-4xl font-bold text-black dark:text-white mb-8 uppercase text-center">Contact Support</h1>
-        <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-           <div>
-              <label className="block text-sm font-bold mb-1 text-black dark:text-white uppercase">Email</label>
-              <input type="email" className="w-full px-4 py-3 border-2 border-black dark:border-white bg-slate-50 dark:bg-slate-800 focus:outline-none focus:shadow-neo-sm transition-all" />
-           </div>
-           <div>
-              <label className="block text-sm font-bold mb-1 text-black dark:text-white uppercase">Message</label>
-              <textarea rows={4} className="w-full px-4 py-3 border-2 border-black dark:border-white bg-slate-50 dark:bg-slate-800 focus:outline-none focus:shadow-neo-sm transition-all"></textarea>
-           </div>
-           <button className="w-full py-4 bg-neo-blue text-white border-2 border-black dark:border-white shadow-neo hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] font-bold uppercase transition-all">Send Inquiry</button>
-        </form>
-      </div>
-   </div>
-);
+  const toggleDarkMode = () => {
+    setDarkMode(prev => !prev);
+  };
 
-// --- Layout Wrapper ---
-const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-       return document.documentElement.classList.contains('dark') || 
-              localStorage.getItem('theme') === 'dark';
+  useEffect(() => {
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      setDarkMode(true);
     }
-    return false;
-  });
+  }, []);
 
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
     }
   }, [darkMode]);
 
-  const toggleDarkMode = () => setDarkMode(!darkMode);
-
-  return (
-    <div className="min-h-screen flex flex-col font-body bg-yellow-50 dark:bg-slate-950 transition-colors duration-300">
-      <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-      <main className="flex-grow">
-        {children}
-      </main>
-      <ChatAssistant />
-      <Footer />
-    </div>
-  );
-};
-
-// --- App Component ---
-const App: React.FC = () => {
   return (
     <Router>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<Generator />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="*" element={<Generator />} />
-        </Routes>
-      </Layout>
+      <div className={`min-h-screen flex flex-col font-sans transition-colors duration-300 ${darkMode ? 'dark bg-slate-900 text-white' : 'bg-yellow-50 text-slate-900'}`}>
+        <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+        <main className="flex-grow w-full">
+          <Routes>
+            <Route path="/" element={<Generator />} />
+            <Route path="/about" element={
+              <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+                <h1 className="text-4xl font-black mb-6 uppercase tracking-widest">How it Works</h1>
+                <p className="text-xl max-w-2xl opacity-70 mb-12">{MISSION}</p>
+              </div>
+            } />
+            <Route path="/contact" element={
+              <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+                <h1 className="text-4xl font-black mb-6 uppercase tracking-widest">Contact</h1>
+                <p className="text-xl opacity-70">support@neodeck.ai</p>
+              </div>
+            } />
+          </Routes>
+        </main>
+        <ChatAssistant />
+        <Footer />
+      </div>
     </Router>
   );
 };
