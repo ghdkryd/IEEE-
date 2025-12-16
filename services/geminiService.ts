@@ -2,22 +2,27 @@ import { GoogleGenAI, Type } from "@google/genai";
 import Groq from "groq-sdk";
 import { Slide } from '../types';
 
-// Access the key safely from window.process to bypass Vite's process.env replacement
-// This ensures we get the key injected in index.html even if Vite mocks process.env
-const apiKey = (window as any).process?.env?.API_KEY || '';
-const isGroq = apiKey.startsWith('gsk_');
+// --- CRITICAL FIX: HARDCODED API KEY ---
+// To prevent "Black Screen" caused by environment variable issues in Vite/Browser.
+const API_KEY = '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';
+
+const isGroq = API_KEY.startsWith('gsk_');
 
 // Initialize clients
 let googleAi: GoogleGenAI | null = null;
 let groq: Groq | null = null;
 
 try {
-  if (apiKey) {
+  if (API_KEY) {
     if (isGroq) {
       // dangerouslyAllowBrowser is required for running Groq SDK in browser environment
-      groq = new Groq({ apiKey, dangerouslyAllowBrowser: true });
+      // This prevents the "refused to run in browser" error
+      groq = new Groq({ 
+        apiKey: API_KEY, 
+        dangerouslyAllowBrowser: true 
+      });
     } else {
-      googleAi = new GoogleGenAI({ apiKey });
+      googleAi = new GoogleGenAI({ apiKey: API_KEY });
     }
   }
 } catch (error) {
