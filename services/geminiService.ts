@@ -25,7 +25,8 @@ Do not hallucinate events or people not listed here.
 
 export const sendMessageToGemini = async (userMessage: string): Promise<string> => {
   try {
-    const apiKey = process.env.API_KEY;
+    const apiKey = "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";
+    
     if (!apiKey) {
       return "I'm sorry, I'm currently offline (API Key missing). Please contact the admin.";
     }
