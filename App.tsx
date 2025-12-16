@@ -1,10 +1,70 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { HashRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Menu, X, Moon, Sun, Github, Linkedin, Mail, FileText, ChevronRight, ChevronLeft, Upload, Play, Download, Copy, RefreshCw } from 'lucide-react';
-import { ORG_NAME, NAV_ITEMS, MISSION } from './constants';
+import { Menu, X, Moon, Sun, Download, ChevronRight, ChevronLeft, Upload, Play, Copy, RefreshCw, Palette, Image as ImageIcon, Layout as LayoutIcon } from 'lucide-react';
+import { NAV_ITEMS, MISSION } from './constants';
 import { ChatAssistant } from './components/ChatAssistant';
 import { generateSlides } from './services/geminiService';
-import { Slide } from './types';
+import { Slide, Theme } from './types';
+
+// --- Theme Configurations ---
+const THEMES: Record<Theme, { 
+  name: string; 
+  bg: string; 
+  text: string; 
+  accent: string; 
+  border: string; 
+  font: string;
+  shadow: string;
+  previewClass: string;
+}> = {
+  neo: {
+    name: 'Neo-Brutalist',
+    bg: 'bg-yellow-50',
+    text: 'text-black',
+    accent: 'bg-neo-pink',
+    border: 'border-black',
+    font: 'font-sans',
+    shadow: 'shadow-neo',
+    previewClass: 'bg-white border-4 border-black'
+  },
+  cyber: {
+    name: 'Cyberpunk',
+    bg: 'bg-zinc-950',
+    text: 'text-green-400',
+    accent: 'bg-purple-600',
+    border: 'border-green-500',
+    font: 'font-mono',
+    shadow: 'shadow-[4px_4px_0_0_#a855f7]',
+    previewClass: 'bg-black border-2 border-green-500'
+  },
+  corporate: {
+    name: 'Professional',
+    bg: 'bg-slate-50',
+    text: 'text-slate-800',
+    accent: 'bg-blue-600',
+    border: 'border-slate-300',
+    font: 'font-sans',
+    shadow: 'shadow-lg',
+    previewClass: 'bg-white border border-slate-200'
+  },
+  minimal: {
+    name: 'Minimalist',
+    bg: 'bg-white',
+    text: 'text-zinc-800',
+    accent: 'bg-zinc-900',
+    border: 'border-transparent',
+    font: 'font-serif',
+    shadow: 'shadow-sm',
+    previewClass: 'bg-zinc-50'
+  }
+};
+
+// --- Helper for Images ---
+const getAIImageUrl = (prompt: string, seed: number) => {
+  const encodedPrompt = encodeURIComponent(prompt + " high quality, stylistic, 4k");
+  // Using Pollinations.ai for real-time generation without auth
+  return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1280&height=720&nologo=true&seed=${seed}`;
+};
 
 // --- Navbar Component ---
 const Navbar: React.FC<{ darkMode: boolean; toggleDarkMode: () => void }> = ({ darkMode, toggleDarkMode }) => {
@@ -89,15 +149,16 @@ const Footer: React.FC = () => (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex flex-col md:flex-row justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400">
         <p>&copy; {new Date().getFullYear()} NeoDeck AI.</p>
-        <p className="bg-neo-yellow text-black px-2 mt-4 md:mt-0 border-2 border-black">Powered by Groq & Llama 3</p>
+        <p className="bg-neo-yellow text-black px-2 mt-4 md:mt-0 border-2 border-black">Powered by Groq & Pollinations.ai</p>
       </div>
     </div>
   </footer>
 );
 
 // --- Generator Component ---
-const SlidePreview: React.FC<{ slides: Slide[] }> = ({ slides }) => {
+const SlidePreview: React.FC<{ slides: Slide[]; theme: Theme }> = ({ slides, theme }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const themeConfig = THEMES[theme];
 
   const nextSlide = () => setCurrentIndex(prev => (prev + 1) % slides.length);
   const prevSlide = () => setCurrentIndex(prev => (prev - 1 + slides.length) % slides.length);
@@ -105,98 +166,158 @@ const SlidePreview: React.FC<{ slides: Slide[] }> = ({ slides }) => {
   const currentSlide = slides[currentIndex];
 
   const handleDownload = () => {
-    alert("In a real app, this would download a .pptx file generated from the JSON!");
+    alert("Downloading feature would generate a PPTX file here.");
   };
 
   if (!currentSlide) return null;
 
+  // Dynamic Styles based on theme
+  const getSlideStyles = () => {
+    switch (theme) {
+      case 'cyber':
+        return 'bg-black text-green-400 font-mono';
+      case 'corporate':
+        return 'bg-white text-slate-800 font-sans';
+      case 'minimal':
+        return 'bg-zinc-50 text-zinc-900 font-serif';
+      default: // neo
+        return 'bg-white text-black font-sans';
+    }
+  };
+
+  const getAccentColor = () => {
+     switch (theme) {
+       case 'cyber': return 'text-purple-400 border-purple-500';
+       case 'corporate': return 'text-blue-600 border-blue-600';
+       case 'minimal': return 'text-black border-black';
+       default: return 'text-neo-pink border-black';
+     }
+  };
+
   return (
-    <div className="bg-slate-100 dark:bg-slate-800 p-4 md:p-8 border-4 border-black dark:border-white shadow-neo-lg dark:shadow-neo-white h-full flex flex-col">
+    <div className={`p-4 md:p-8 h-full flex flex-col transition-colors duration-500 ${theme === 'neo' ? 'bg-slate-100 border-4 border-black shadow-neo-lg' : theme === 'cyber' ? 'bg-zinc-900 border-2 border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.3)]' : 'bg-gray-100 shadow-xl'}`}>
+      
+      {/* Controls Header */}
       <div className="flex justify-between items-center mb-4">
-        <div className="font-bold text-sm uppercase text-slate-500 dark:text-slate-400">
-          Slide {currentIndex + 1} of {slides.length}
+        <div className={`font-bold text-sm uppercase ${theme === 'cyber' ? 'text-green-600' : 'text-slate-500'}`}>
+          Slide {currentIndex + 1} / {slides.length}
         </div>
-        <div className="flex gap-2">
-          <button onClick={handleDownload} className="flex items-center gap-2 px-3 py-1 bg-neo-green text-black border-2 border-black shadow-neo-sm hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] text-xs font-bold uppercase transition-all">
-            <Download size={14} /> Export
-          </button>
-        </div>
+        <button onClick={handleDownload} className={`flex items-center gap-2 px-3 py-1 text-xs font-bold uppercase transition-all ${theme === 'neo' ? 'bg-neo-green text-black border-2 border-black shadow-neo-sm hover:shadow-none' : 'bg-blue-600 text-white rounded hover:bg-blue-700'}`}>
+          <Download size={14} /> Export
+        </button>
       </div>
 
-      {/* Slide Viewport */}
-      <div className="flex-grow bg-white aspect-video border-2 border-black relative overflow-hidden flex flex-col p-8 md:p-12 mb-6">
-        {/* Decorative elements based on layout */}
-        <div className="absolute top-0 left-0 w-full h-2 bg-neo-pink"></div>
-        {currentSlide.layout === 'title' && (
-           <div className="absolute bottom-0 right-0 w-24 h-24 bg-neo-yellow rounded-tl-full opacity-50"></div>
-        )}
+      {/* Slide Viewport (16:9 Aspect Ratio) */}
+      <div className={`flex-grow aspect-video relative overflow-hidden flex flex-col transition-all duration-300 ${themeConfig.previewClass} ${getSlideStyles()}`}>
+        
+        {/* Theme Specific Background Decorations */}
+        {theme === 'neo' && <div className="absolute top-0 left-0 w-full h-4 bg-neo-pink border-b-4 border-black z-10"></div>}
+        {theme === 'cyber' && <div className="absolute top-0 left-0 w-full h-full bg-[linear-gradient(rgba(18,18,18,0)_2px,transparent_2px),linear-gradient(90deg,rgba(18,18,18,0)_2px,transparent_2px)] bg-[size:40px_40px] [background-position:center] opacity-20 pointer-events-none"></div>}
+        {theme === 'corporate' && <div className="absolute bottom-0 right-0 w-1/3 h-full bg-blue-50 -skew-x-12 opacity-50"></div>}
 
-        <div className="z-10 h-full flex flex-col">
+        {/* Content Container */}
+        <div className="relative z-20 h-full flex p-8 md:p-16">
+          
+          {/* --- LAYOUTS --- */}
+          
           {currentSlide.layout === 'title' ? (
-            <div className="my-auto text-center">
-              <h1 className="text-4xl md:text-5xl font-black text-black mb-6 uppercase tracking-tighter leading-none">{currentSlide.title}</h1>
-              <p className="text-xl md:text-2xl font-bold text-slate-600 max-w-2xl mx-auto">{currentSlide.content}</p>
+            <div className="w-full flex flex-col justify-center items-center text-center relative">
+               {/* Background Image for Title */}
+               <div className="absolute inset-0 z-0 opacity-20">
+                  <img 
+                    src={getAIImageUrl(currentSlide.imagePrompt || currentSlide.title, currentIndex)} 
+                    alt="Background" 
+                    className="w-full h-full object-cover grayscale mix-blend-multiply"
+                  />
+               </div>
+               <div className="relative z-10">
+                 <h1 className={`text-5xl md:text-7xl font-black mb-6 uppercase tracking-tighter leading-none ${getAccentColor().split(' ')[0]}`}>{currentSlide.title}</h1>
+                 <p className="text-xl md:text-2xl font-bold opacity-80 max-w-2xl mx-auto">{currentSlide.content}</p>
+               </div>
             </div>
+
           ) : currentSlide.layout === 'split' ? (
-            <div className="flex h-full gap-8">
-              <div className="w-1/2 flex flex-col justify-center border-r-4 border-black pr-8">
-                <h2 className="text-3xl font-black text-black mb-4 uppercase">{currentSlide.title}</h2>
-                <p className="text-lg font-medium text-slate-700">{currentSlide.content}</p>
+            <div className="flex w-full h-full gap-8 items-center">
+              <div className="w-1/2 h-full relative">
+                 <div className={`absolute inset-0 ${theme === 'neo' ? 'border-4 border-black shadow-neo-sm' : 'rounded-lg overflow-hidden shadow-lg'}`}>
+                    <img 
+                      src={getAIImageUrl(currentSlide.imagePrompt || currentSlide.title, currentIndex)} 
+                      alt="Slide Visual" 
+                      className="w-full h-full object-cover"
+                    />
+                 </div>
               </div>
-              <div className="w-1/2 flex flex-col justify-center pl-4">
-                 <ul className="space-y-4">
+              <div className="w-1/2 flex flex-col justify-center">
+                <h2 className={`text-3xl font-black mb-6 uppercase ${theme === 'neo' ? 'bg-neo-yellow inline-block px-2' : ''}`}>{currentSlide.title}</h2>
+                <p className="text-lg font-medium mb-6 opacity-90">{currentSlide.content}</p>
+                <ul className="space-y-3">
                   {currentSlide.bulletPoints.map((point, i) => (
                     <li key={i} className="flex items-start gap-3">
-                      <div className="w-4 h-4 bg-neo-blue border-2 border-black mt-1 flex-shrink-0"></div>
-                      <span className="font-bold text-slate-800">{point}</span>
+                      <div className={`w-2 h-2 mt-2 flex-shrink-0 ${theme === 'cyber' ? 'bg-green-500 shadow-[0_0_5px_#22c55e]' : 'bg-current'}`}></div>
+                      <span className="font-bold opacity-80">{point}</span>
                     </li>
                   ))}
                 </ul>
               </div>
             </div>
+
           ) : currentSlide.layout === 'quote' ? (
-             <div className="my-auto">
-                <h2 className="text-2xl font-black text-slate-400 mb-8 uppercase text-center">{currentSlide.title}</h2>
-                <blockquote className="text-3xl md:text-4xl font-bold text-black border-l-8 border-neo-pink pl-6 py-2 italic leading-tight">
-                  "{currentSlide.content}"
-                </blockquote>
+             <div className="flex w-full h-full items-center justify-center relative">
+                <div className="absolute right-0 top-0 w-64 h-64 opacity-20">
+                   <img 
+                      src={getAIImageUrl(currentSlide.imagePrompt || "abstract", currentIndex)} 
+                      className="w-full h-full object-cover rounded-full"
+                    />
+                </div>
+                <div className="z-10 max-w-4xl text-center">
+                  <h2 className="text-xl font-bold opacity-50 mb-8 uppercase tracking-widest">{currentSlide.title}</h2>
+                  <blockquote className={`text-4xl md:text-5xl font-black italic leading-tight ${theme === 'neo' ? 'border-l-8 border-black pl-8' : ''}`}>
+                    "{currentSlide.content}"
+                  </blockquote>
+                </div>
              </div>
+
           ) : (
-            // Default Bullet Layout
-            <div className="flex flex-col h-full">
-              <div className="border-b-4 border-black pb-4 mb-8">
-                <h2 className="text-3xl md:text-4xl font-black text-black uppercase">{currentSlide.title}</h2>
+            // Bullet Layout
+            <div className="w-full flex flex-col h-full">
+              <div className={`flex items-end justify-between border-b-4 pb-4 mb-8 ${getAccentColor().split(' ')[1]}`}>
+                <h2 className="text-4xl font-black uppercase max-w-2xl">{currentSlide.title}</h2>
+                <div className="w-24 h-24 hidden md:block opacity-80">
+                   <img 
+                      src={getAIImageUrl(currentSlide.imagePrompt || "icon", currentIndex)} 
+                      className="w-full h-full object-cover rounded-md"
+                   />
+                </div>
               </div>
-              <p className="text-lg font-medium text-slate-700 mb-6">{currentSlide.content}</p>
-              <ul className="grid grid-cols-1 gap-4">
+              <p className="text-xl font-medium mb-8 opacity-90">{currentSlide.content}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {currentSlide.bulletPoints.map((point, i) => (
-                  <li key={i} className="flex items-center gap-3 bg-slate-50 border-2 border-black p-3 shadow-neo-sm">
-                    <div className="w-3 h-3 bg-black"></div>
-                    <span className="font-bold text-slate-800">{point}</span>
-                  </li>
+                  <div key={i} className={`p-4 ${theme === 'neo' ? 'border-2 border-black shadow-neo-sm bg-white' : theme === 'cyber' ? 'border border-green-900 bg-black/50' : 'bg-slate-50 rounded shadow-sm'}`}>
+                    <span className="font-bold opacity-85">{point}</span>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Controls */}
-      <div className="flex justify-between items-center">
-         <button onClick={prevSlide} className="p-3 bg-white text-black border-2 border-black shadow-neo-sm hover:shadow-none transition-all disabled:opacity-50" disabled={currentIndex === 0}>
-           <ChevronLeft size={24} />
+      {/* Navigation */}
+      <div className="flex justify-between items-center mt-4">
+         <button onClick={prevSlide} className={`p-2 rounded-full transition-all ${theme === 'cyber' ? 'hover:bg-green-900 text-green-500' : 'hover:bg-slate-200'}`} disabled={currentIndex === 0}>
+           <ChevronLeft size={28} />
          </button>
          <div className="flex gap-2">
            {slides.map((_, idx) => (
              <button 
                key={idx} 
                onClick={() => setCurrentIndex(idx)}
-               className={`w-3 h-3 border-2 border-black transition-all ${idx === currentIndex ? 'bg-black scale-125' : 'bg-white'}`}
+               className={`w-2 h-2 transition-all rounded-full ${idx === currentIndex ? (theme === 'cyber' ? 'bg-green-500 w-4' : 'bg-black w-4') : 'bg-slate-300'}`}
              />
            ))}
          </div>
-         <button onClick={nextSlide} className="p-3 bg-white text-black border-2 border-black shadow-neo-sm hover:shadow-none transition-all disabled:opacity-50" disabled={currentIndex === slides.length - 1}>
-           <ChevronRight size={24} />
+         <button onClick={nextSlide} className={`p-2 rounded-full transition-all ${theme === 'cyber' ? 'hover:bg-green-900 text-green-500' : 'hover:bg-slate-200'}`} disabled={currentIndex === slides.length - 1}>
+           <ChevronRight size={28} />
          </button>
       </div>
     </div>
@@ -205,6 +326,7 @@ const SlidePreview: React.FC<{ slides: Slide[] }> = ({ slides }) => {
 
 const Generator: React.FC = () => {
   const [inputText, setInputText] = useState('');
+  const [selectedTheme, setSelectedTheme] = useState<Theme>('neo');
   const [isGenerating, setIsGenerating] = useState(false);
   const [slides, setSlides] = useState<Slide[] | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -214,8 +336,6 @@ const Generator: React.FC = () => {
     
     setIsGenerating(true);
     setSlides(null);
-    
-    // Smooth scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     try {
@@ -240,97 +360,84 @@ const Generator: React.FC = () => {
           }
         };
         reader.readAsText(file);
-      } else {
-        // Mocking file reading for non-text files for demo purposes
-        setInputText(`Presentation about ${file.name.split('.')[0]}.\n\n(Content extracted from ${file.name} would appear here...)`);
       }
     }
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 md:py-16">
-      <div className="grid lg:grid-cols-2 gap-12">
-        {/* Input Section */}
-        <div className="space-y-8">
-          <div className="bg-neo-yellow dark:bg-slate-800 p-8 border-4 border-black dark:border-white shadow-neo dark:shadow-neo-white">
-            <h1 className="text-5xl font-bold text-black dark:text-white mb-6 uppercase tracking-tighter leading-none">
-              Turn Text into <br/><span className="bg-white px-2">Decks</span> Instantly
-            </h1>
-            <p className="text-lg font-bold text-slate-800 dark:text-slate-300 mb-8">
-              Paste your notes, essay, or upload a text file. AI will format it into a punchy, neo-brutalist presentation.
-            </p>
-
-            <div className="space-y-4">
-              <div className="relative">
-                <textarea 
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  placeholder="Paste your content here or describe the presentation you want..."
-                  className="w-full h-64 p-4 border-4 border-black bg-white focus:outline-none focus:bg-slate-50 font-mono text-sm resize-none"
-                />
-                <div className="absolute bottom-4 right-4 flex gap-2">
-                   <button 
-                     onClick={() => setInputText('')}
-                     className="p-2 bg-slate-200 border-2 border-black hover:bg-red-200 transition-colors" 
-                     title="Clear"
-                   >
-                     <RefreshCw size={16} />
-                   </button>
-                   <button 
-                     onClick={() => navigator.clipboard.readText().then(t => setInputText(t))}
-                     className="p-2 bg-slate-200 border-2 border-black hover:bg-green-200 transition-colors"
-                     title="Paste"
-                   >
-                     <Copy size={16} />
-                   </button>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="relative overflow-hidden inline-block">
-                  <button className="flex items-center gap-2 px-6 py-3 bg-white text-black border-2 border-black shadow-neo-sm font-bold uppercase hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all w-full md:w-auto justify-center">
-                    <Upload size={20} /> Upload File
-                  </button>
-                  <input 
-                    type="file" 
-                    ref={fileInputRef}
-                    onChange={handleFileUpload}
-                    className="absolute inset-0 opacity-0 cursor-pointer" 
-                  />
-                </div>
-                <span className="text-xs font-bold text-slate-500 uppercase">.TXT supported natively</span>
-              </div>
+      <div className="grid lg:grid-cols-12 gap-12">
+        {/* Input Section (4 Columns) */}
+        <div className="lg:col-span-4 space-y-6">
+          <div className="bg-white dark:bg-slate-800 p-6 border-4 border-black dark:border-white shadow-neo dark:shadow-neo-white">
+            <h2 className="text-3xl font-black mb-6 uppercase flex items-center gap-2">
+               <Palette size={24} /> Style
+            </h2>
+            
+            {/* Theme Selector */}
+            <div className="grid grid-cols-2 gap-3 mb-8">
+               {Object.entries(THEMES).map(([key, config]) => (
+                 <button
+                   key={key}
+                   onClick={() => setSelectedTheme(key as Theme)}
+                   className={`p-3 text-left border-2 transition-all flex flex-col gap-2 ${selectedTheme === key ? 'border-black dark:border-white ring-2 ring-offset-2 ring-black dark:ring-white bg-slate-100 dark:bg-slate-700' : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+                 >
+                    <div className={`w-full h-8 ${config.bg} border border-slate-300 relative overflow-hidden`}>
+                       <div className={`absolute top-0 right-0 w-4 h-full ${config.accent}`}></div>
+                    </div>
+                    <span className="text-xs font-bold uppercase">{config.name}</span>
+                 </button>
+               ))}
             </div>
+
+            <h2 className="text-3xl font-black mb-4 uppercase flex items-center gap-2">
+               <LayoutIcon size={24} /> Content
+            </h2>
+            <textarea 
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              placeholder="Paste content about your team, event, or topic here..."
+              className="w-full h-48 p-4 border-2 border-black bg-slate-50 focus:outline-none focus:ring-2 focus:ring-neo-pink font-medium text-sm resize-none mb-4"
+            />
+            
+            <div className="flex gap-2 mb-6">
+               <button onClick={() => setInputText('')} className="flex-1 p-2 bg-slate-200 text-xs font-bold uppercase border border-black hover:bg-slate-300">Clear</button>
+               <button className="flex-1 p-2 bg-slate-200 text-xs font-bold uppercase border border-black hover:bg-slate-300 relative overflow-hidden">
+                  Upload .TXT
+                  <input type="file" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+               </button>
+            </div>
+
+            <button 
+              onClick={handleGenerate}
+              disabled={isGenerating || !inputText}
+              className="w-full py-4 bg-black text-white text-xl font-black uppercase tracking-widest border-4 border-transparent hover:bg-neo-pink hover:text-black hover:border-black shadow-neo hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isGenerating ? <RefreshCw className="animate-spin" /> : "Generate Deck"}
+            </button>
           </div>
-          
-          <button 
-            onClick={handleGenerate}
-            disabled={isGenerating || !inputText}
-            className="w-full py-6 bg-black text-white text-2xl font-black uppercase tracking-widest border-4 border-transparent hover:bg-neo-pink hover:text-black hover:border-black shadow-neo-lg hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-4"
-          >
-            {isGenerating ? (
-              <>Generating <RefreshCw className="animate-spin" /></>
-            ) : (
-              <>Generate Deck <Play fill="currentColor" /></>
-            )}
-          </button>
         </div>
 
-        {/* Output Section */}
-        <div className="min-h-[500px]">
+        {/* Output Section (8 Columns) */}
+        <div className="lg:col-span-8 min-h-[600px]">
           {isGenerating ? (
             <div className="h-full flex flex-col items-center justify-center bg-white dark:bg-slate-900 border-4 border-black dark:border-white shadow-neo border-dashed">
-               <div className="w-24 h-24 bg-neo-blue animate-bounce border-4 border-black mb-8"></div>
-               <h3 className="text-2xl font-bold uppercase animate-pulse">Forging Slides...</h3>
-               <p className="text-slate-500 font-mono mt-2">Connecting ideas...</p>
+               <div className="w-32 h-32 relative mb-8">
+                  <div className="absolute inset-0 bg-neo-pink animate-ping opacity-75 rounded-full"></div>
+                  <div className="relative bg-white border-4 border-black w-32 h-32 flex items-center justify-center rounded-full z-10">
+                     <RefreshCw size={48} className="animate-spin" />
+                  </div>
+               </div>
+               <h3 className="text-3xl font-black uppercase animate-pulse">Forging Slides...</h3>
+               <p className="text-slate-500 font-bold mt-2 uppercase tracking-widest">Designing & Generating AI Images</p>
             </div>
           ) : slides ? (
-            <SlidePreview slides={slides} />
+            <SlidePreview slides={slides} theme={selectedTheme} />
           ) : (
-            <div className="h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-800 border-4 border-black dark:border-white border-dashed opacity-50">
-               <FileText size={64} className="mb-4 text-slate-400" />
-               <h3 className="text-xl font-bold uppercase text-slate-500">Preview Area</h3>
-               <p className="text-slate-400">Your generated slides will appear here</p>
+            <div className="h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-800 border-4 border-black dark:border-white border-dashed opacity-50 p-8 text-center">
+               <ImageIcon size={64} className="mb-6 text-slate-400" />
+               <h3 className="text-2xl font-bold uppercase text-slate-500 mb-2">Ready to Design</h3>
+               <p className="text-slate-400 max-w-md mx-auto">Select a theme on the left, paste your content, and watch AI generate slides with custom imagery.</p>
             </div>
           )}
         </div>
@@ -407,7 +514,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const toggleDarkMode = () => setDarkMode(!darkMode);
 
   return (
-    <div className="min-h-screen flex flex-col font-body bg-yellow-50 dark:bg-slate-950">
+    <div className="min-h-screen flex flex-col font-body bg-yellow-50 dark:bg-slate-950 transition-colors duration-300">
       <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
       <main className="flex-grow">
         {children}

@@ -11,14 +11,14 @@ const groq = new Groq({
 
 const SYSTEM_INSTRUCTION = `
 You are a presentation expert. Your job is to take raw text or a topic and convert it into a structural JSON for a slide deck.
-The design style is Neo-Brutalism, so the copy should be punchy, direct, and bold.
 
 You must output a valid JSON object with a single key "slides" containing an array of slide objects.
 Each slide object must have:
-- title (string)
-- content (string)
-- bulletPoints (array of strings)
-- layout (one of: "title", "bullet", "split", "quote")
+- title (string): Short punchy title.
+- content (string): The main body text (keep it concise).
+- bulletPoints (array of strings): 2-4 key takeaways.
+- layout (one of: "title", "bullet", "split", "quote").
+- imagePrompt (string): A descriptive English prompt to generate an AI image for this slide. It should describe a visual scene, style, or object related to the content. Do not use text in the image prompt.
 
 Example JSON:
 {
@@ -27,7 +27,8 @@ Example JSON:
       "title": "NEO DESIGN",
       "content": "Bold shadows and high contrast.",
       "bulletPoints": ["Stark borders", "Vibrant colors"],
-      "layout": "split"
+      "layout": "split",
+      "imagePrompt": "abstract geometric 3d shapes, yellow and black, high contrast, neo brutalism style, 4k"
     }
   ]
 }
@@ -71,7 +72,8 @@ export const generateSlides = async (input: string): Promise<Slide[]> => {
         title: "Error Occurred",
         content: error?.message || "Failed to reach the AI service.",
         bulletPoints: ["Check Console for details", "Verify API Key", "Try again"],
-        layout: "title"
+        layout: "title",
+        imagePrompt: "error warning sign glitch style red"
       }
     ];
   }
