@@ -5,8 +5,8 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   define: {
-    // CRITICAL FIX: Polyfill process.env for libraries (like Groq) that expect Node.js environment
-    // This prevents "process is not defined" errors in the browser.
+    // Polyfill process.env for libraries that rely on it (like groq-sdk internals)
+    // IMPORTANT: Use import.meta.env.VITE_... for your actual variables in code
     'process.env': {},
   },
 });
