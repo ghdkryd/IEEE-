@@ -39,14 +39,14 @@ const THEMES: Record<Theme, {
     text: 'text-black',
     accent: 'bg-neo-pink',
     previewClass: 'bg-white border-8 border-black',
-    pattern: 'bg-[radial-gradient(black_1px,transparent_1px)] [background-size:16px_16px] opacity-20'
+    pattern: 'bg-[radial-gradient(black_1px,transparent_1px)] [background-size:24px_24px] opacity-10'
   },
   swiss: {
     name: 'Swiss Style',
     bg: 'bg-[#f0f0f0]',
     text: 'text-black',
     accent: 'bg-red-600',
-    previewClass: 'bg-[#f0f0f0] border-l-[32px] border-red-600 shadow-xl text-black',
+    previewClass: 'bg-[#f0f0f0] border-l-[32px] border-red-600 text-black',
     pattern: 'opacity-5'
   },
   retro: {
@@ -54,7 +54,7 @@ const THEMES: Record<Theme, {
     bg: 'bg-[#1a0b2e]',
     text: 'text-pink-400',
     accent: 'bg-cyan-400',
-    previewClass: 'bg-[#1a0b2e] border-4 border-pink-500 shadow-[0_0_30px_#ec4899] text-cyan-300',
+    previewClass: 'bg-[#1a0b2e] border-4 border-pink-500 text-cyan-300',
     pattern: 'bg-[linear-gradient(transparent_95%,rgba(236,72,153,0.3)_95%)] bg-[size:100%_40px]'
   },
   bauhaus: {
@@ -62,14 +62,14 @@ const THEMES: Record<Theme, {
     bg: 'bg-[#f4f4f0]',
     text: 'text-slate-900',
     accent: 'bg-yellow-500',
-    previewClass: 'bg-[#f4f4f0] border-b-[20px] border-blue-600 border-r-[20px] border-red-600 shadow-lg',
+    previewClass: 'bg-[#f4f4f0] border-b-[20px] border-blue-600 border-r-[20px] border-red-600',
   },
   cyber: {
     name: 'Cyberpunk',
     bg: 'bg-zinc-950',
     text: 'text-cyan-400',
     accent: 'bg-purple-600',
-    previewClass: 'bg-black border-2 border-cyan-500 shadow-[0_0_20px_rgba(6,182,212,0.3)] text-cyan-400',
+    previewClass: 'bg-black border-2 border-cyan-500 text-cyan-400',
     pattern: 'bg-[linear-gradient(45deg,rgba(6,182,212,0.1)_25%,transparent_25%,transparent_50%,rgba(6,182,212,0.1)_50%,rgba(6,182,212,0.1)_75%,transparent_75%,transparent)] [background-size:20px_20px]'
   },
   corporate: {
@@ -77,14 +77,14 @@ const THEMES: Record<Theme, {
     bg: 'bg-slate-50',
     text: 'text-slate-800',
     accent: 'bg-blue-800',
-    previewClass: 'bg-gradient-to-br from-white to-slate-200 border border-slate-300 shadow-xl text-slate-800'
+    previewClass: 'bg-gradient-to-br from-white to-slate-200 border border-slate-300 text-slate-800'
   },
   minimal: {
     name: 'Editorial',
     bg: 'bg-stone-50',
     text: 'text-stone-900',
     accent: 'bg-stone-800',
-    previewClass: 'bg-white shadow-lg text-stone-900 border border-stone-100'
+    previewClass: 'bg-white text-stone-900 border border-stone-100'
   },
   tech: {
     name: 'Tech Blue',
@@ -99,7 +99,7 @@ const THEMES: Record<Theme, {
     bg: 'bg-[#0a0a0a]',
     text: 'text-amber-100',
     accent: 'bg-amber-600',
-    previewClass: 'bg-[#0a0a0a] border border-amber-500/50 text-amber-50 shadow-2xl'
+    previewClass: 'bg-[#0a0a0a] border border-amber-500/50 text-amber-50'
   },
   nature: {
     name: 'Organic',
@@ -128,7 +128,7 @@ const THEMES: Record<Theme, {
     bg: 'bg-orange-50',
     text: 'text-gray-800',
     accent: 'bg-orange-400',
-    previewClass: 'bg-[#fffdf5] border-2 border-gray-300 shadow-sm text-gray-800',
+    previewClass: 'bg-[#fffdf5] border-2 border-gray-300 text-gray-800',
     pattern: 'bg-[url("https://www.transparenttextures.com/patterns/cardboard.png")] opacity-40'
   },
   'dark-modern': {
@@ -151,7 +151,7 @@ const Navbar: React.FC<{ darkMode: boolean; toggleDarkMode: () => void }> = ({ d
   }, [location]);
 
   return (
-    <nav className="sticky top-0 z-40 w-full bg-white dark:bg-slate-900 border-b-4 border-black dark:border-white">
+    <nav className="sticky top-0 z-40 w-full bg-white dark:bg-slate-900 border-b-4 border-black dark:border-white no-print">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-20 items-center">
           <Link to="/" className="flex-shrink-0 flex items-center gap-3 group">
@@ -188,7 +188,7 @@ const Navbar: React.FC<{ darkMode: boolean; toggleDarkMode: () => void }> = ({ d
 
 // --- Footer Component ---
 const Footer: React.FC = () => (
-  <footer className="bg-white dark:bg-slate-900 border-t-4 border-black dark:border-white pt-12 pb-8 mt-auto">
+  <footer className="bg-white dark:bg-slate-900 border-t-4 border-black dark:border-white pt-12 pb-8 mt-auto no-print">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex flex-col md:flex-row justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400">
         <p>&copy; {new Date().getFullYear()} NeoDeck AI.</p>
@@ -202,81 +202,52 @@ const Footer: React.FC = () => (
 const SlideWorkspace: React.FC<{ slides: Slide[]; theme: Theme; font: FontKey }> = ({ slides, theme, font }) => {
   const themeConfig = THEMES[theme];
   const fontConfig = FONTS[font];
-  const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleDownloadHTML = () => {
-    if (!containerRef.current) return;
-    
-    // Create a complete HTML document string
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <title>Presentation Deck</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&family=Inter:wght@400;700&family=Cairo:wght@400;700&family=Amiri:wght@400;700&family=Tajawal:wght@400;700&family=Playfair+Display:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
-        <style>
-           .font-cairo { font-family: 'Cairo', sans-serif; }
-           .font-tajawal { font-family: 'Tajawal', sans-serif; }
-           .font-amiri { font-family: 'Amiri', serif; }
-           .font-sans { font-family: 'Inter', sans-serif; }
-           .font-grotesk { font-family: 'Space Grotesk', sans-serif; }
-           .font-serif { font-family: 'Playfair Display', serif; }
-           .font-mono { font-family: 'Roboto Mono', monospace; }
-           /* Print friendly */
-           @media print {
-             body { -webkit-print-color-adjust: exact; }
-           }
-        </style>
-      </head>
-      <body class="bg-gray-100 p-8 flex flex-col gap-8 items-center">
-        ${containerRef.current.innerHTML}
-      </body>
-      </html>
-    `;
-
-    const blob = new Blob([htmlContent], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `neodeck-${new Date().getTime()}.html`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleExportPDF = () => {
+    const originalTitle = document.title;
+    // Set a clean filename for the PDF export
+    document.title = `NeoDeck_Presentation_${new Date().toISOString().split('T')[0]}`;
+    window.print();
+    // Revert title after a moment so the app title returns to normal
+    setTimeout(() => {
+        document.title = originalTitle;
+    }, 500);
   };
 
   return (
-    <div className="w-full min-h-screen flex flex-col items-center bg-[#18181b] relative">
+    <div className="w-full min-h-screen flex flex-col items-center bg-[#18181b] relative print:bg-white print:block">
       
-      {/* Top Bar */}
-      <div className="w-full bg-[#27272a] text-white p-4 flex justify-between items-center border-b border-[#3f3f46] sticky top-20 z-30 shadow-md">
+      {/* Top Bar - Hidden on Print */}
+      <div className="w-full bg-[#27272a] text-white p-4 flex justify-between items-center border-b border-[#3f3f46] sticky top-20 z-30 shadow-md no-print">
         <div className="flex items-center gap-3">
            <Monitor size={20} className="text-blue-400" />
            <span className="font-bold text-sm tracking-wide hidden sm:inline">WORKSPACE VIEW</span>
            <span className="bg-blue-600 text-[10px] px-2 py-0.5 rounded font-bold">{slides.length} SLIDES</span>
         </div>
-        <button onClick={handleDownloadHTML} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold uppercase rounded transition-colors">
-          <Download size={14} /> Download HTML
+        <button 
+          onClick={handleExportPDF} 
+          className="flex items-center gap-2 px-6 py-2 bg-neo-green hover:bg-green-300 text-black text-xs font-bold uppercase border-2 border-transparent hover:border-black rounded-none transition-all shadow-neo-sm hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px]"
+        >
+          <Download size={16} /> Export as PDF
         </button>
       </div>
 
-      {/* Slide Canvas */}
-      <div ref={containerRef} className="w-full max-w-6xl p-4 md:p-8 space-y-12 pb-32">
+      {/* Slide Canvas - Print Container */}
+      <div className="w-full max-w-6xl p-4 md:p-8 space-y-12 pb-32 print-container print:p-0 print:space-y-0 print:w-full">
         {slides.map((slide, index) => {
           const slideIsArabic = isArabic(slide.title) || isArabic(slide.content);
           
           return (
-            <div key={index} className="flex gap-4 items-start group">
+            <div key={index} className="flex gap-4 items-start group print:block print:w-full print:h-full print:gap-0">
               
-              {/* Slide Index */}
-              <div className="w-8 text-right pt-4 text-gray-500 font-mono text-xs hidden md:block select-none not-printable">
+              {/* Slide Index - Hidden in print */}
+              <div className="w-8 text-right pt-4 text-gray-500 font-mono text-xs hidden md:block select-none no-print">
                  {String(index + 1).padStart(2, '0')}
               </div>
 
-              {/* THE SLIDE (16:9 Aspect Ratio Container) */}
+              {/* THE SLIDE PAGE */}
               <div 
-                className={`relative w-full aspect-video shadow-2xl overflow-hidden transform transition-transform duration-300 hover:scale-[1.01] ${themeConfig.previewClass}`}
+                className={`slide-page relative w-full aspect-video shadow-2xl overflow-hidden print:shadow-none print:w-full print:h-full print:rounded-none ${themeConfig.previewClass}`}
                 dir={slideIsArabic ? 'rtl' : 'ltr'}
               >
                  {/* Font Application */}
@@ -297,7 +268,7 @@ const SlideWorkspace: React.FC<{ slides: Slide[]; theme: Theme; font: FontKey }>
                           <h1 className="text-5xl md:text-7xl font-black mb-8 uppercase leading-tight drop-shadow-sm max-w-4xl">
                              {slide.title}
                           </h1>
-                          <p className="text-xl md:text-2xl font-medium opacity-80 max-w-2xl mx-auto leading-relaxed">
+                          <p className="text-xl md:text-3xl font-medium opacity-80 max-w-3xl mx-auto leading-relaxed">
                              {slide.content}
                           </p>
                           <div className="mt-12 opacity-50 text-sm font-bold tracking-[0.2em] uppercase">
@@ -310,17 +281,17 @@ const SlideWorkspace: React.FC<{ slides: Slide[]; theme: Theme; font: FontKey }>
                     {slide.layout === 'split' && (
                        <div className="h-full flex flex-col md:flex-row gap-12 items-center">
                           <div className="w-full md:w-1/2 flex flex-col justify-center border-b md:border-b-0 md:border-e-4 border-current/10 pb-6 md:pb-0 md:pe-8 h-full">
-                             <h2 className="text-4xl md:text-5xl font-black mb-6 leading-tight">{slide.title}</h2>
-                             <p className="text-lg opacity-80 leading-relaxed">{slide.content}</p>
+                             <h2 className="text-4xl md:text-6xl font-black mb-8 leading-tight">{slide.title}</h2>
+                             <p className="text-xl opacity-80 leading-relaxed">{slide.content}</p>
                           </div>
                           <div className="w-full md:w-1/2 flex flex-col justify-center h-full">
                              <ul className="space-y-6">
                                 {slide.bulletPoints.map((bp, i) => (
                                    <li key={i} className="flex items-start gap-4">
-                                      <div className={`mt-1.5 w-6 h-6 flex items-center justify-center ${themeConfig.accent} text-white font-bold text-xs rounded-full shrink-0`}>
+                                      <div className={`mt-1.5 w-8 h-8 flex items-center justify-center ${themeConfig.accent} text-white font-bold text-sm rounded-full shrink-0`}>
                                         {i+1}
                                       </div>
-                                      <span className="font-bold text-lg md:text-xl opacity-90">{bp}</span>
+                                      <span className="font-bold text-xl md:text-2xl opacity-90">{bp}</span>
                                    </li>
                                 ))}
                              </ul>
@@ -333,16 +304,16 @@ const SlideWorkspace: React.FC<{ slides: Slide[]; theme: Theme; font: FontKey }>
                        <div className="h-full flex flex-col">
                           <div className="flex justify-between items-end mb-8 border-b-4 border-current/10 pb-4">
                              <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tight">{slide.title}</h2>
-                             <span className={`text-xl font-black opacity-30`}>0{index + 1}</span>
+                             <span className={`text-2xl font-black opacity-30`}>0{index + 1}</span>
                           </div>
                           <div className="flex-grow flex gap-12">
-                             <div className="w-1/3 hidden md:block opacity-60 text-lg leading-relaxed">
+                             <div className="w-1/3 hidden md:block opacity-60 text-2xl leading-relaxed">
                                 {slide.content}
                              </div>
-                             <div className="w-full md:w-2/3 space-y-4">
+                             <div className="w-full md:w-2/3 space-y-5">
                                 {slide.bulletPoints.map((bp, i) => (
-                                   <div key={i} className={`p-4 border-l-4 ${i % 2 === 0 ? 'border-current/50 bg-current/5' : 'border-transparent'}`}>
-                                      <span className="text-xl font-bold">{bp}</span>
+                                   <div key={i} className={`p-6 border-l-8 ${i % 2 === 0 ? 'border-current/50 bg-current/5' : 'border-transparent'}`}>
+                                      <span className="text-2xl font-bold">{bp}</span>
                                    </div>
                                 ))}
                              </div>
@@ -350,18 +321,18 @@ const SlideWorkspace: React.FC<{ slides: Slide[]; theme: Theme; font: FontKey }>
                        </div>
                     )}
 
-                    {/* --- FOCUS / CENTER LAYOUT (Replaces Image Center) --- */}
+                    {/* --- FOCUS / CENTER LAYOUT --- */}
                     {slide.layout === 'focus' && (
                        <div className="h-full flex flex-col justify-center items-center text-center">
-                          <div className="mb-4 text-sm font-bold tracking-widest uppercase opacity-50">{slide.title}</div>
-                          <div className="flex flex-wrap justify-center gap-6 mb-8">
+                          <div className="mb-6 text-sm font-bold tracking-widest uppercase opacity-50">{slide.title}</div>
+                          <div className="flex flex-wrap justify-center gap-6 mb-12">
                              {slide.bulletPoints.map((bp, i) => (
-                                <div key={i} className={`px-6 py-4 ${themeConfig.accent} text-white font-bold text-lg shadow-lg transform hover:-translate-y-1 transition-transform`}>
+                                <div key={i} className={`px-8 py-5 ${themeConfig.accent} text-white font-bold text-xl shadow-lg transform hover:-translate-y-1 transition-transform`}>
                                    {bp}
                                 </div>
                              ))}
                           </div>
-                          <p className="text-2xl font-light leading-relaxed max-w-3xl opacity-90 border-t-2 border-current/20 pt-8">
+                          <p className="text-3xl font-light leading-relaxed max-w-4xl opacity-90 border-t-2 border-current/20 pt-8">
                              {slide.content}
                           </p>
                        </div>
@@ -370,14 +341,14 @@ const SlideWorkspace: React.FC<{ slides: Slide[]; theme: Theme; font: FontKey }>
                     {/* --- QUOTE LAYOUT --- */}
                     {slide.layout === 'quote' && (
                        <div className="h-full flex flex-col justify-center items-center text-center relative z-10">
-                          <div className="text-[120px] leading-none opacity-10 font-serif absolute top-0 left-8">“</div>
-                          <h2 className="text-3xl md:text-6xl font-black italic leading-tight mb-12 max-w-5xl relative z-10">
+                          <div className="text-[140px] leading-none opacity-10 font-serif absolute top-0 left-8">“</div>
+                          <h2 className="text-4xl md:text-7xl font-black italic leading-tight mb-12 max-w-6xl relative z-10">
                              {slide.content}
                           </h2>
                           <div className="flex items-center gap-4">
-                             <div className={`h-1 w-12 ${themeConfig.accent}`}></div>
-                             <p className="text-xl font-bold uppercase tracking-widest opacity-70">{slide.title}</p>
-                             <div className={`h-1 w-12 ${themeConfig.accent}`}></div>
+                             <div className={`h-2 w-16 ${themeConfig.accent}`}></div>
+                             <p className="text-2xl font-bold uppercase tracking-widest opacity-70">{slide.title}</p>
+                             <div className={`h-2 w-16 ${themeConfig.accent}`}></div>
                           </div>
                        </div>
                     )}
@@ -441,7 +412,7 @@ const Generator: React.FC = () => {
         <div className="relative">
            <button 
              onClick={() => setSlides(null)} 
-             className="fixed bottom-6 left-6 z-50 flex items-center gap-2 px-6 py-3 bg-black text-white font-bold uppercase border-2 border-white shadow-lg hover:bg-neo-pink hover:text-black hover:border-black transition-all"
+             className="fixed bottom-6 left-6 z-50 flex items-center gap-2 px-6 py-3 bg-black text-white font-bold uppercase border-2 border-white shadow-lg hover:bg-neo-pink hover:text-black hover:border-black transition-all no-print"
            >
              <ChevronLeft size={20} /> Back to Editor
            </button>
