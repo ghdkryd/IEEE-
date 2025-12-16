@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IEEE Student Branch Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Space Grotesk', 'Inter', 'sans-serif'], // Switched to Space Grotesk for a more "tech/neo" vibe
+              body: ['Inter', 'sans-serif'],
+            },
+            colors: {
+              ieee: {
+                blue: '#00629B',
+                dark: '#000000', // Neo-brutalism loves pure black
+                light: '#E0F2FE'
+              },
+              neo: {
+                yellow: '#FEF08A',
+                pink: '#FBCFE8',
+                green: '#BBF7D0',
+                purple: '#E9D5FF'
+              }
+            },
+            boxShadow: {
+              'neo': '4px 4px 0 0 #000000',
+              'neo-sm': '2px 2px 0 0 #000000',
+              'neo-lg': '8px 8px 0 0 #000000',
+              'neo-white': '4px 4px 0 0 #ffffff',
+              'neo-white-sm': '2px 2px 0 0 #ffffff',
+            }
+          }
+        }
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.10.1",
+    "@google/genai": "https://esm.sh/@google/genai@^1.33.0",
+    "lucide-react": "https://esm.sh/lucide-react@^0.561.0"
+  }
+}
+</script>
+</head>
+  <body class="bg-yellow-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100 transition-colors duration-200 selection:bg-black selection:text-white dark:selection:bg-white dark:selection:text-black">
+    <div id="root"></div>
+  </body>
+</html>
