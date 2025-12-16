@@ -65,7 +65,9 @@
     <script>
       // CRITICAL FIX: Define process.env to prevent crashes in libraries expecting Node.js environment
       // This runs before any module imports to ensure compatibility.
-      window.process = { env: {} };
+      window.process = { env: {
+        API_KEY: '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'
+      } };
 
       tailwind.config = {
         darkMode: 'class',
