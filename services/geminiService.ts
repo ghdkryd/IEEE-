@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import Groq from "groq-sdk";
 import { EVENTS, TEAM, PROJECTS, ORG_NAME, MISSION } from '../constants';
 
 // Construct a system prompt that gives the AI context about the website data
@@ -25,27 +25,30 @@ Do not hallucinate events or people not listed here.
 
 export const sendMessageToGemini = async (userMessage: string): Promise<string> => {
   try {
+    // Note: In a production app, you should proxy requests through a backend
+    // instead of exposing the API key in the frontend.
     const apiKey = "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";
     
     if (!apiKey) {
       return "I'm sorry, I'm currently offline (API Key missing). Please contact the admin.";
     }
 
-    const ai = new GoogleGenAI({ apiKey });
+    const groq = new Groq({ 
+      apiKey,
+      dangerouslyAllowBrowser: true 
+    });
     
-    // We use a simple generateContent here for a single turn Q&A style, 
-    // but in a full app we would manage chat history in a React context.
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: userMessage,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-      }
+    const response = await groq.chat.completions.create({
+      messages: [
+        { role: "system", content: SYSTEM_INSTRUCTION },
+        { role: "user", content: userMessage }
+      ],
+      model: "llama-3.3-70b-versatile",
     });
 
-    return response.text || "I couldn't generate a response at the moment.";
+    return response.choices[0]?.message?.content || "I couldn't generate a response at the moment.";
   } catch (error) {
-    console.error("Gemini Error:", error);
+    console.error("Groq Error:", error);
     return "I encountered an error processing your request. Please try again later.";
   }
 };
