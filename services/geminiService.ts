@@ -23,11 +23,28 @@ Keep answers concise, friendly, and professional.
 Do not hallucinate events or people not listed here.
 `;
 
+// Helper function to safely get the API key from various environments
+const getApiKey = (): string | undefined => {
+  // 1. Try Vite environment variable (Modern standard)
+  // @ts-ignore - import.meta.env might not be defined in all TS configurations
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_GROQ_API_KEY) {
+    // @ts-ignore
+    return import.meta.env.VITE_GROQ_API_KEY;
+  }
+
+  // 2. Try Create React App / Node environment variable (Legacy standard)
+  if (typeof process !== 'undefined' && process.env && process.env.REACT_APP_GROQ_API_KEY) {
+    return process.env.REACT_APP_GROQ_API_KEY;
+  }
+
+  // 3. Fallback to hardcoded key (For testing/preview)
+  // NOTE: Remove this in production and use environment variables above
+  return "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";
+};
+
 export const sendMessageToGemini = async (userMessage: string): Promise<string> => {
   try {
-    // Note: In a production app, you should proxy requests through a backend
-    // instead of exposing the API key in the frontend.
-    const apiKey = "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";
+    const apiKey = getApiKey();
     
     if (!apiKey) {
       return "I'm sorry, I'm currently offline (API Key missing). Please contact the admin.";
