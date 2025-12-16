@@ -1,7 +1,28 @@
 import { GoogleGenAI, Type } from "@google/genai";
+import Groq from "groq-sdk";
 import { Slide } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Access the key safely from window.process to bypass Vite's process.env replacement
+// This ensures we get the key injected in index.html even if Vite mocks process.env
+const apiKey = (window as any).process?.env?.API_KEY || '';
+const isGroq = apiKey.startsWith('gsk_');
+
+// Initialize clients
+let googleAi: GoogleGenAI | null = null;
+let groq: Groq | null = null;
+
+try {
+  if (apiKey) {
+    if (isGroq) {
+      // dangerouslyAllowBrowser is required for running Groq SDK in browser environment
+      groq = new Groq({ apiKey, dangerouslyAllowBrowser: true });
+    } else {
+      googleAi = new GoogleGenAI({ apiKey });
+    }
+  }
+} catch (error) {
+  console.error("Client Initialization Error:", error);
+}
 
 export const generateSlides = async (input: string, mode: 'strict' | 'creative', slideCount: number): Promise<Slide[]> => {
   
@@ -38,60 +59,74 @@ Each slide must have:
     
     Make sure the text is concise and fits on a slide. Focus on strong typography.`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            slides: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  title: { type: Type.STRING },
-                  content: { type: Type.STRING },
-                  bulletPoints: {
-                    type: Type.ARRAY,
-                    items: { type: Type.STRING }
-                  },
-                  layout: { 
-                    type: Type.STRING,
-                    description: 'One of: "title", "bullet", "split", "quote", "focus"'
-                  }
-                },
-                required: ["title", "content", "bulletPoints", "layout"]
-              }
-            }
-          },
-          required: ["slides"]
-        }
-      }
-    });
+    // --- GROQ PATH ---
+    if (isGroq && groq) {
+      const completion = await groq.chat.completions.create({
+        messages: [
+          { role: "system", content: SYSTEM_INSTRUCTION + "\n\nIMPORTANT: Return ONLY valid JSON." },
+          { role: "user", content: prompt + "\n\nOutput JSON object with format: { \"slides\": [{ \"title\": \"...\", \"content\": \"...\", \"bulletPoints\": [\"...\"], \"layout\": \"...\" }] }" }
+        ],
+        model: "llama-3.3-70b-versatile",
+        response_format: { type: "json_object" }
+      });
 
-    const content = response.text;
-    
-    if (content) {
-      try {
+      const content = completion.choices[0]?.message?.content;
+      if (content) {
         const parsed = JSON.parse(content);
-        if (parsed.slides && Array.isArray(parsed.slides)) {
-          return parsed.slides as Slide[];
+        return (parsed.slides || []) as Slide[];
+      }
+    } 
+    // --- GOOGLE PATH ---
+    else if (googleAi) {
+      const response = await googleAi.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+          systemInstruction: SYSTEM_INSTRUCTION,
+          responseMimeType: "application/json",
+          responseSchema: {
+             type: Type.OBJECT,
+             properties: {
+               slides: {
+                 type: Type.ARRAY,
+                 items: {
+                   type: Type.OBJECT,
+                   properties: {
+                     title: { type: Type.STRING },
+                     content: { type: Type.STRING },
+                     bulletPoints: {
+                       type: Type.ARRAY,
+                       items: { type: Type.STRING }
+                     },
+                     layout: { 
+                       type: Type.STRING,
+                       description: 'One of: "title", "bullet", "split", "quote", "focus"'
+                     }
+                   },
+                   required: ["title", "content", "bulletPoints", "layout"]
+                 }
+               }
+             },
+             required: ["slides"]
+          }
         }
-      } catch (e) {
-        console.error("Failed to parse JSON", e);
+      });
+      const content = response.text;
+      if (content) {
+         const parsed = JSON.parse(content);
+         return (parsed.slides || []) as Slide[];
       }
     }
-    throw new Error("Invalid content generated");
+    
+    throw new Error("No active AI client or empty response");
+
   } catch (error: any) {
-    console.error("Gemini API Error:", error);
+    console.error("AI Generation Error:", error);
     return [
       {
         title: "Error / خطأ",
         content: "Could not generate content. Please try again. / تعذر إنشاء المحتوى.",
-        bulletPoints: ["Check API Key", "Check Connection"],
+        bulletPoints: ["Check API Key", "Check Connection", error.message || "Unknown error"],
         layout: "title"
       }
     ] as Slide[];
@@ -100,14 +135,28 @@ Each slide must have:
 
 export const sendMessageToGemini = async (userMessage: string): Promise<string> => {
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: userMessage,
-      config: {
-        systemInstruction: "You are NeoDeck's helpful assistant. If the user asks in Arabic, reply in Arabic. Keep answers short."
-      }
-    });
-    return response.text || "Processing...";
+    const systemMsg = "You are NeoDeck's helpful assistant. If the user asks in Arabic, reply in Arabic. Keep answers short.";
+    
+    if (isGroq && groq) {
+      const completion = await groq.chat.completions.create({
+        messages: [
+          { role: "system", content: systemMsg },
+          { role: "user", content: userMessage }
+        ],
+        model: "llama-3.3-70b-versatile",
+      });
+      return completion.choices[0]?.message?.content || "Processing...";
+    } else if (googleAi) {
+      const response = await googleAi.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: userMessage,
+        config: {
+          systemInstruction: systemMsg
+        }
+      });
+      return response.text || "Processing...";
+    }
+    return "Service unavailable.";
   } catch (error) {
     console.error(error);
     return "Service unavailable.";
